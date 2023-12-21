@@ -1,0 +1,14 @@
+{
+    "name": "3D Gaussian Splatting Dev Container",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "gaussian-splatting",
+    "workspaceFolder": "/volume",
+    "shutdownAction": "stopCompose",
+    "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "mutantdino.resourcemonitor",
+        "ms-azuretools.vscode-docker",
+        "nvidia.nsight-vscode-edition"
+    ]
+}
