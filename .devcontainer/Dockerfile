@@ -18,7 +18,7 @@ RUN echo "Installing apt packages..." \
 RUN wget -O Miniconda3-install.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
 	&& chmod +x ./Miniconda3-install.sh && bash ./Miniconda3-install.sh -b \
     && rm -f ./Miniconda3-install.sh \
-    && echo PATH="/root/miniconda3/bin":$PATH >> .bashrc \
+    && echo 'PATH="/root/miniconda3/bin":$PATH' >> /root/.bashrc \
     && exec bash \
 	&& conda env create --file environment.yml \
 	&& conda init bash \
