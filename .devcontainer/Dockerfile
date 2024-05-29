@@ -19,9 +19,8 @@ RUN wget -O Miniconda3-install.sh https://repo.anaconda.com/miniconda/Miniconda3
 	&& chmod +x ./Miniconda3-install.sh && bash ./Miniconda3-install.sh -b \
     && rm -f ./Miniconda3-install.sh \
     && echo 'PATH="/root/miniconda3/bin":$PATH' >> /root/.bashrc \
-    && exec bash \
-	&& conda env create --file environment.yml \
-	&& conda init bash \
+	&& /root/miniconda3/bin/conda env create --file environment.yml \
+	&& /root/miniconda3/bin/conda init bash \
 	&& echo "conda activate gaussian_splatting" >> /root/.bashrc
 
 SHELL [ "/bin/bash" ]
