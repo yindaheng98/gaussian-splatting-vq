@@ -37,8 +37,13 @@ class VQGaussianModel(GaussianModel):
 
     def VectorQuant(self, log2_clusters):
         self.requires_grad_(False)
-        kmeans_rotation = kmeans_fit(log2_clusters, self._rotation.cpu())
-        self._rotation[...] = kmeans_predict(kmeans_rotation, self._rotation.cpu())
+        # kmeans_scaling = kmeans_fit(log2_clusters, self._scaling)
+        # self._scaling[...] = kmeans_predict(kmeans_scaling, self._scaling)
+        kmeans_rotation = kmeans_fit(log2_clusters, self._rotation)
+        self._rotation[...] = kmeans_predict(kmeans_rotation, self._rotation)
+        kmeans_features_dc = kmeans_fit(log2_clusters, self._features_dc[:, 0, :])
+        self._features_dc[:, 0, :] = kmeans_predict(kmeans_features_dc, self._features_dc[:, 0, :])
+        self._features_rest[...] = 0
         self.requires_grad_(True)
 
 
