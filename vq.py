@@ -1,5 +1,11 @@
 import os
+import argparse
 from scene import GaussianModel
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--src", type=str, required=True, help="The source bson.")
+parser.add_argument("--dst", type=str, required=True, help="The destination bson.")
+parser.add_argument("--log2-clusters", type=int, required=True, help="Qualtize from which layer.")
 
 
 class VQGaussianModel(GaussianModel):
@@ -23,8 +29,10 @@ class VQGaussianModel(GaussianModel):
         self.requires_grad_(True)
 
 
-gaussians = VQGaussianModel(sh_degree=3)
-gaussians.load_ply("output/da1fd9e7-c/point_cloud/iteration_30000/point_cloud.ply")
-gaussians.VectorQuant()
-os.makedirs("output/da1fd9e7-c/point_cloud/iteration_30001", exist_ok=True)
-gaussians.save_ply("output/da1fd9e7-c/point_cloud/iteration_30001/point_cloud.ply")
+if __name__ == "__main__":
+    args = parser.parse_args()
+    gaussians = VQGaussianModel(sh_degree=3)
+    gaussians.load_ply(os.path.join(args.src, "point_cloud.ply"))
+    gaussians.VectorQuant()
+    os.makedirs(args.dst, exist_ok=True)
+    gaussians.save_ply(os.path.join(args.dst, "point_cloud.ply"))

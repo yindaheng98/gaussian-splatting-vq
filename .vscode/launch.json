@@ -11,7 +11,12 @@
             "program": "render.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["-m", "output/da1fd9e7-c/", "--iteration", "30001"]
+            "args": [
+                "-m",
+                "output/da1fd9e7-c/",
+                "--iteration",
+                "30001"
+            ]
         },
         {
             "name": "train",
@@ -20,7 +25,26 @@
             "program": "train.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["-s", "data/walking/frame1"]
+            "args": [
+                "-s",
+                "data/walking/frame1"
+            ]
+        },
+        {
+            "name": "vq",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "vq.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/da1fd9e7-c/point_cloud/iteration_30000",
+                "--dst",
+                "output/da1fd9e7-c/point_cloud/iteration_30001",
+                "--log2-clusters",
+                "8"
+            ]
         }
     ]
 }
