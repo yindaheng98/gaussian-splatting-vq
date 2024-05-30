@@ -11,7 +11,7 @@
             "program": "render.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["-m", "output/da1fd9e7-c/"]
+            "args": ["-m", "output/da1fd9e7-c/", "--iteration", "30001"]
         },
         {
             "name": "train",
