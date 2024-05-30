@@ -3,11 +3,12 @@ from scene import GaussianModel
 
 class VQGaussianModel(GaussianModel):
     def VectorQuant(self):
-        print("scaling", self.get_scaling.shape)
-        print("rotation", self.get_rotation.shape)
-        print("xyz", self.get_xyz.shape)
-        print("features", self.get_features.shape)
-        print("opacity", self.get_opacity.shape)
+        print("scaling", self._scaling.shape)
+        print("rotation", self._rotation.shape)
+        print("xyz", self._xyz.shape)
+        print("features_dc", self._features_dc.shape)
+        print("features_rest", self._features_rest.shape)
+        print("opacity", self._opacity.shape)
         
 
 gaussians = VQGaussianModel(sh_degree=3)
