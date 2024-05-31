@@ -43,7 +43,9 @@
                 "--dst",
                 "output/da1fd9e7-c/point_cloud/iteration_30001",
                 "--log2-clusters",
-                "8"
+                "6",
+                "--log2-clusters-scaling",
+                "10"
             ]
         }
     ]

@@ -7,7 +7,12 @@ from scene import GaussianModel
 parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source bson.")
 parser.add_argument("--dst", type=str, required=True, help="The destination bson.")
-parser.add_argument("--log2-clusters", type=int, required=True, help="Qualtize from which layer.")
+parser.add_argument("--log2-clusters", type=int, required=True, help="Qualtize to how many clusters.")
+parser.add_argument("--log2-clusters-scaling", type=int, default=0, help="Qualtize from which layer.")
+parser.add_argument("--log2-clusters-rotation", type=int, default=0, help="Qualtize from which layer.")
+parser.add_argument("--log2-clusters-features_dc", type=int, default=0, help="Qualtize from which layer.")
+parser.add_argument("--log2-clusters-features_rest", type=int, default=0, help="Qualtize from which layer.")
+parser.add_argument("--log2-clusters-opacity", type=int, default=0, help="Qualtize from which layer.")
 
 
 def kmeans_fit(log2_clusters, data: torch.Tensor):
@@ -35,15 +40,22 @@ class VQGaussianModel(GaussianModel):
         print("opacity", self._opacity.shape)
         self._opacity.requires_grad_(mode)
 
-    def VectorQuant(self, log2_clusters):
+    def VectorQuant(self,
+                    log2_clusters_scaling,
+                    log2_clusters_rotation,
+                    log2_clusters_features_dc,
+                    log2_clusters_features_rest,
+                    log2_clusters_opacity):
         self.requires_grad_(False)
-        # kmeans_scaling = kmeans_fit(log2_clusters, self._scaling)
-        # self._scaling[...] = kmeans_predict(kmeans_scaling, self._scaling)
-        kmeans_rotation = kmeans_fit(log2_clusters, self._rotation)
+        kmeans_scaling = kmeans_fit(log2_clusters_scaling, self._scaling)
+        self._scaling[...] = kmeans_predict(kmeans_scaling, self._scaling)
+        kmeans_rotation = kmeans_fit(log2_clusters_rotation, self._rotation)
         self._rotation[...] = kmeans_predict(kmeans_rotation, self._rotation)
-        kmeans_features_dc = kmeans_fit(log2_clusters, self._features_dc[:, 0, :])
+        kmeans_features_dc = kmeans_fit(log2_clusters_features_dc, self._features_dc[:, 0, :])
         self._features_dc[:, 0, :] = kmeans_predict(kmeans_features_dc, self._features_dc[:, 0, :])
         self._features_rest[...] = 0
+        kmeans_opacity = kmeans_fit(log2_clusters_opacity, self._opacity)
+        self._opacity[...] = kmeans_predict(kmeans_opacity, self._opacity)
         self.requires_grad_(True)
 
 
@@ -51,6 +63,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     gaussians = VQGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, "point_cloud.ply"))
-    gaussians.VectorQuant(args.log2_clusters)
+    gaussians.VectorQuant(
+        args.log2_clusters_scaling or args.log2_clusters,
+        args.log2_clusters_rotation or args.log2_clusters,
+        args.log2_clusters_features_dc or args.log2_clusters,
+        args.log2_clusters_features_rest or args.log2_clusters,
+        args.log2_clusters_opacity or args.log2_clusters)
     os.makedirs(args.dst, exist_ok=True)
     gaussians.save_ply(os.path.join(args.dst, "point_cloud.ply"))
