@@ -13,7 +13,7 @@
             "justMyCode": false,
             "args": [
                 "-m",
-                "output/da1fd9e7-c/",
+                "output/9c62fbe3-d/",
                 "--iteration",
                 "30001"
             ]
@@ -39,9 +39,9 @@
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/da1fd9e7-c/point_cloud/iteration_30000",
+                "output/9c62fbe3-d/point_cloud/iteration_30000",
                 "--dst",
-                "output/da1fd9e7-c/point_cloud/iteration_30001",
+                "output/9c62fbe3-d/point_cloud/iteration_30001",
                 "--log2-clusters",
                 "7",
                 "--log2-clusters-scaling",
@@ -50,6 +50,20 @@
                 "10",
                 "--log2-clusters-features_dc",
                 "4",
+            ]
+        },
+        {
+            "name": "ply2obj",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "ply2obj.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/9c62fbe3-d/point_cloud/iteration_30001/point_cloud.ply",
+                "--dst",
+                "output/9c62fbe3-d/point_cloud/iteration_30002/point_cloud.obj",
             ]
         }
     ]
