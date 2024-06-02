@@ -27,7 +27,9 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/walking/frame1"
+                "data/walking/frame1",
+                "--model_path",
+                "output/walking/frame1"
             ]
         },
         {
