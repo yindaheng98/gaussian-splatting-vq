@@ -15,7 +15,7 @@
                 "-m",
                 "output/9c62fbe3-d/",
                 "--iteration",
-                "30001"
+                "30002"
             ]
         },
         {
@@ -53,17 +53,17 @@
             ]
         },
         {
-            "name": "ply2obj",
+            "name": "ply23dgs",
             "type": "debugpy",
             "request": "launch",
-            "program": "ply2obj.py",
+            "program": "ply23dgs.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/9c62fbe3-d/point_cloud/iteration_30001/point_cloud.ply",
+                "output/9c62fbe3-d/point_cloud/iteration_30002",
                 "--dst",
-                "output/9c62fbe3-d/point_cloud/iteration_30002/point_cloud.obj",
+                "output/9c62fbe3-d/point_cloud/iteration_30002",
             ]
         }
     ]
