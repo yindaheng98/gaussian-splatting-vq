@@ -2,6 +2,7 @@ import sqlite3
 import shutil
 import os
 import logging
+import re
 
 
 def load_colmap_cameras(load_cameras_path, dst_path, colmap_command):
@@ -29,6 +30,13 @@ def load_colmap_cameras(load_cameras_path, dst_path, colmap_command):
     if exit_code != 0:
         logging.error(f"model_converter failed with code {exit_code}. Exiting.")
         exit(exit_code)
-    open(mapper_input_path + "/images.txt", "w").close()
+    with open(mapper_input_path + "/images.txt", "r") as f:
+        lines = f.readlines()
+    with open(mapper_input_path + "/images.txt", "w") as f:
+        for line in lines:
+            if line[0] == "#":
+                f.writelines([line])
+            elif re.match("^[0-9]+ ", line):
+                f.writelines([line, "\n"])
     open(mapper_input_path + "/points3D.txt", "w").close()
     return mapper_input_path
