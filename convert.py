@@ -48,8 +48,9 @@ if not args.skip_matching:
         logging.error(f"Feature extraction failed with code {exit_code}. Exiting.")
         exit(exit_code)
 
+    mapper_input_arg = ""
     if args.load_cameras_module and args.load_cameras_func and args.load_cameras_path:
-        getattr(
+        mapper_input_arg = "--input_path " + getattr(
             importlib.import_module(args.load_cameras_module), args.load_cameras_func
         )(args.load_cameras_path, args.source_path)
 

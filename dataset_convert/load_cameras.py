@@ -1,4 +1,6 @@
 import sqlite3
+import shutil
+import os
 
 
 def load_colmap_cameras(load_cameras_path, dst_path):
@@ -14,3 +16,10 @@ def load_colmap_cameras(load_cameras_path, dst_path):
     conn.commit()
     conn.close()
     print(src_database, "->", dst_database)
+    mapper_input_path = dst_path + "/sparse/0"
+    if os.path.isdir(mapper_input_path):
+        shutil.rmtree(mapper_input_path)
+    os.makedirs(mapper_input_path)
+    shutil.copyfile(load_cameras_path + "/sparse/0/cameras.bin", mapper_input_path + "/cameras.bin")
+    shutil.copyfile(load_cameras_path + "/sparse/0/images.bin", mapper_input_path + "/images.bin")
+    return mapper_input_path
