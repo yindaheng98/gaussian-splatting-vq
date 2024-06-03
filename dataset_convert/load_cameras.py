@@ -1,9 +1,10 @@
 import sqlite3
 import shutil
 import os
+import logging
 
 
-def load_colmap_cameras(load_cameras_path, dst_path):
+def load_colmap_cameras(load_cameras_path, dst_path, colmap_command):
     src_database = load_cameras_path + "/distorted/database.db"
     dst_database = dst_path + "/distorted/database.db"
     conn = sqlite3.connect(dst_database)
@@ -20,7 +21,14 @@ def load_colmap_cameras(load_cameras_path, dst_path):
     if os.path.isdir(mapper_input_path):
         shutil.rmtree(mapper_input_path)
     os.makedirs(mapper_input_path)
-    shutil.copyfile(load_cameras_path + "/distorted/sparse/0/cameras.bin", mapper_input_path + "/cameras.bin")
-    open(mapper_input_path + "/images.bin", "w").close()
-    open(mapper_input_path + "/points3D.bin", "w").close()
+    convert_cmd = colmap_command + " model_converter \
+        --input_path " + load_cameras_path + "/distorted/sparse/0 \
+        --output_path " + mapper_input_path + " \
+        --output_type TXT"
+    exit_code = os.system(convert_cmd)
+    if exit_code != 0:
+        logging.error(f"model_converter failed with code {exit_code}. Exiting.")
+        exit(exit_code)
+    open(mapper_input_path + "/images.txt", "w").close()
+    open(mapper_input_path + "/points3D.txt", "w").close()
     return mapper_input_path

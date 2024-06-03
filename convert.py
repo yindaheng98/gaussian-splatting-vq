@@ -37,8 +37,8 @@ if not args.skip_matching:
     os.makedirs(args.source_path + "/distorted/sparse", exist_ok=True)
 
     # Feature extraction
-    feat_extracton_cmd = colmap_command + " feature_extractor "\
-        "--database_path " + args.source_path + "/distorted/database.db \
+    feat_extracton_cmd = colmap_command + " feature_extractor \
+        --database_path " + args.source_path + "/distorted/database.db \
         --image_path " + args.source_path + "/input \
         --ImageReader.camera_model " + args.camera + " \
         --SiftExtraction.use_gpu " + str(use_gpu) + \
@@ -49,10 +49,13 @@ if not args.skip_matching:
         exit(exit_code)
 
     mapper_input_arg = ""
+    mapper_output_path = "/distorted/sparse"
     if args.load_cameras_module and args.load_cameras_func and args.load_cameras_path:
         mapper_input_arg = "--input_path " + getattr(
             importlib.import_module(args.load_cameras_module), args.load_cameras_func
-        )(args.load_cameras_path, args.source_path)
+        )(args.load_cameras_path, args.source_path, colmap_command)
+        mapper_output_path = "/distorted/sparse/0"
+        os.makedirs(args.source_path + mapper_output_path, exist_ok=True)
 
     # Feature matching
     feat_matching_cmd = colmap_command + " exhaustive_matcher \
@@ -69,7 +72,7 @@ if not args.skip_matching:
     mapper_cmd = (colmap_command + " mapper \
         --database_path " + args.source_path + "/distorted/database.db \
         --image_path " + args.source_path + "/input \
-        --output_path " + args.source_path + "/distorted/sparse \
+        --output_path " + args.source_path + mapper_output_path + " \
         --Mapper.ba_global_function_tolerance=0.000001 " + mapper_input_arg)
     exit_code = os.system(mapper_cmd)
     if exit_code != 0:
