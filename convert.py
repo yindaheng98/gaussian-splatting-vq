@@ -51,7 +51,7 @@ if not args.skip_matching:
     if args.load_cameras_module and args.load_cameras_func and args.load_cameras_path:
         getattr(
             importlib.import_module(args.load_cameras_module), args.load_cameras_func
-        )(args.load_cameras_path, args.source_path + "/distorted/database.db")
+        )(args.load_cameras_path, args.source_path)
 
     # Feature matching
     feat_matching_cmd = colmap_command + " exhaustive_matcher \

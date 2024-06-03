@@ -1,8 +1,9 @@
 import sqlite3
 
 
-def load_colmap_cameras(load_cameras_path, dst_database):
+def load_colmap_cameras(load_cameras_path, dst_path):
     src_database = load_cameras_path + "/distorted/database.db"
+    dst_database = dst_path + "/distorted/database.db"
     conn = sqlite3.connect(dst_database)
     c = conn.cursor()
     c.execute("DELETE FROM cameras")
