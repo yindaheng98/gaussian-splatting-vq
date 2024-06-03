@@ -29,7 +29,11 @@
                 "-s",
                 "data/walking/frame1",
                 "--model_path",
-                "output/walking/frame1"
+                "output/walking/frame1",
+                "--start_checkpoint",
+                "output/walking/frame1/chkpnt7000.pth",
+                "--start_iter",
+                "0"
             ]
         },
         {
