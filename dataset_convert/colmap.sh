@@ -24,11 +24,9 @@ apt-get install -y \
     libceres-dev && \
 git clone https://github.com/colmap/colmap.git -b 3.9.1 && \
 cd colmap && \
-mkdir build && \
+mkdir -p build && \
 cd build && \
 cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=native && \
-cd .. && \
 ninja && \
-ninja build && \
 rm /data/colmap && \
 cp src/colmap/exe/colmap /data
