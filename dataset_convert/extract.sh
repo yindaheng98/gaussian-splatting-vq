@@ -1,0 +1,15 @@
+# !/bin/bash
+# Just an example for extracting datasets
+unzip -o ~/dataset/video/Neural_3D_Video/coffee_martini.zip -d data
+unzip -o ~/dataset/video/Neural_3D_Video/cook_spinach.zip -d data
+unzip -o ~/dataset/video/Neural_3D_Video/cut_roasted_beef.zip -d data
+unzip -o ~/dataset/video/Neural_3D_Video/flame_steak.zip -d data
+unzip -o ~/dataset/video/Neural_3D_Video/sear_steak.zip -d data
+unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/discussion.zip -d data
+unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/stepin.zip -d data
+unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/trimming.zip -d data
+unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/vrheadset.zip -d data
+
+zip -F ~/dataset/video/Neural_3D_Video/flame_salmon_1_split.zip --out flame_salmon_1.zip
+unzip -o flame_salmon_1.zip -d data
+rm flame_salmon_1.zip
