@@ -121,11 +121,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 def prepare_output_and_logger(args):    
     if not args.model_path:
-        if os.getenv('OAR_JOB_ID'):
-            unique_str=os.getenv('OAR_JOB_ID')
-        else:
-            unique_str = str(uuid.uuid4())
-        args.model_path = os.path.join("./output/", unique_str[0:10])
+        args.model_path = os.path.join("./output/", str(uuid.uuid4())[0:10])
         
     # Set up output folder
     print("Output folder: {}".format(args.model_path))
