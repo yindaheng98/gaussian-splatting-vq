@@ -5,20 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "render",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "render.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "-m",
-                "output/9c62fbe3-d/",
-                "--iteration",
-                "30002"
-            ]
-        },
-        {
             "name": "train",
             "type": "debugpy",
             "request": "launch",
@@ -84,6 +70,20 @@
                 "output/9c62fbe3-d/point_cloud/iteration_30002",
                 "--dst",
                 "output/9c62fbe3-d/point_cloud/iteration_30002",
+            ]
+        },
+        {
+            "name": "render",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "render.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-m",
+                "output/9c62fbe3-d/",
+                "--iteration",
+                "30002"
             ]
         }
     ]
