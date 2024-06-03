@@ -39,4 +39,13 @@ def load_colmap_cameras(load_cameras_path, dst_path, colmap_command):
             elif re.match("^[0-9]+ ", line):
                 f.writelines([line, "\n"])
     open(mapper_input_path + "/points3D.txt", "w").close()
+    triangulator_cmd = colmap_command + " point_triangulator \
+        --database_path " + dst_database + " \
+        --input_path " + mapper_input_path + " \
+        --output_path " + mapper_input_path + " \
+        --image_path " + dst_path + "/input"
+    exit_code = os.system(triangulator_cmd)
+    if exit_code != 0:
+        logging.error(f"model_converter failed with code {exit_code}. Exiting.")
+        exit(exit_code)
     return mapper_input_path
