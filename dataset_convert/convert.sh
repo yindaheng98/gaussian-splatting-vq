@@ -5,7 +5,8 @@ convert_n3dv() {
         --path data/$1 \
         --exec ./data/ffmpeg \
         --fmt "$3" \
-        --n_frames $2 >./temp.sh && ./temp.sh && rm ./temp.sh
+        --n_frames $2 >./temp.sh && \
+        chmod +x ./temp.sh && ./temp.sh && rm ./temp.sh
     # echo \
     python convert.py \
         -s "data/$1/frame1" \
