@@ -8,23 +8,23 @@ convert_n3dv() {
         --n_frames $2 >./temp.sh && ./temp.sh && rm ./temp.sh
     # echo \
     python convert.py \
-        --colmap_executable ".\data\colmap\COLMAP.bat" \
         -s "data/$1/frame1" \
-        --single_camera_per_image
+        --single_camera_per_image \
+        # --colmap_executable ".\data\colmap\COLMAP.bat"
     for ((i = 2; i <= $2; ++i)); do
         # echo \
         python convert.py \
-            --colmap_executable ".\data\colmap\COLMAP.bat" \
             -s "data/$1/frame$i" \
             --single_camera_per_image \
-            --load_cameras_path data/$1/frame1
+            --load_cameras_path data/$1/frame1 \
+            # --colmap_executable ".\data\colmap\COLMAP.bat"
     done
 }
 
 convert_n3dv coffee_martini 300 "cam[0-9][0-9].mp4"
 convert_n3dv cook_spinach 300 "cam[0-9][0-9].mp4"
 convert_n3dv cut_roasted_beef 300 "cam[0-9][0-9].mp4"
-# convert_n3dv flame_salmon_1 1200 "cam[0-9][0-9].mp4"
+convert_n3dv flame_salmon_1 1200 "cam[0-9][0-9].mp4"
 convert_n3dv flame_steak 300 "cam[0-9][0-9].mp4"
 convert_n3dv sear_steak 300 "cam[0-9][0-9].mp4"
 
