@@ -1,7 +1,6 @@
-export DEBIAN_FRONTEND=noninteractive
-export TZ=Etc/UTC
+# !/bin/bash
 apt-get update && \
-apt-get install -y \
+DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
     git \
     cmake \
     ninja-build \
@@ -22,10 +21,8 @@ apt-get install -y \
     libqt5opengl5-dev \
     libcgal-dev \
     libceres-dev && \
+cd data &&
 git clone https://github.com/colmap/colmap.git -b 3.9.1 && \
-cd colmap && \
-mkdir -p build && \
-cd build && \
+cd colmap && mkdir -p build && cd build && \
 cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=native && \
-ninja && \
-cp src/colmap/exe/colmap /data
+ninja && ninja install

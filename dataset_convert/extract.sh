@@ -6,8 +6,7 @@ mv ffmpeg-6.0.1-amd64-static/ffmpeg data/ffmpeg
 rm -r ffmpeg-6.0.1-amd64-static
 
 # Just an example to build colmap
-sudo docker pull nvidia/cuda:12.4.1-devel-ubuntu20.04
-sudo docker run --rm --gpus all -v ./dataset_convert/colmap.sh:/colmap.sh -v ./data:/data --entrypoint bash nvidia/cuda:12.4.1-devel-ubuntu20.04 -c "chmod +x /colmap.sh && /colmap.sh"
+sudo ./dataset_convert/colmap.sh
 
 # Just an example for extracting datasets
 unzip -o ~/dataset/video/Neural_3D_Video/coffee_martini.zip -d data
