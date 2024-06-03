@@ -16,10 +16,11 @@ def load_colmap_cameras(load_cameras_path, dst_path):
     conn.commit()
     conn.close()
     print(src_database, "->", dst_database)
-    mapper_input_path = dst_path + "/sparse/0"
+    mapper_input_path = dst_path + "/distorted/sparse/last_frame"
     if os.path.isdir(mapper_input_path):
         shutil.rmtree(mapper_input_path)
     os.makedirs(mapper_input_path)
-    shutil.copyfile(load_cameras_path + "/sparse/0/cameras.bin", mapper_input_path + "/cameras.bin")
-    shutil.copyfile(load_cameras_path + "/sparse/0/images.bin", mapper_input_path + "/images.bin")
+    shutil.copyfile(load_cameras_path + "/distorted/sparse/0/cameras.bin", mapper_input_path + "/cameras.bin")
+    open(mapper_input_path + "/images.bin", "w").close()
+    open(mapper_input_path + "/points3D.bin", "w").close()
     return mapper_input_path
