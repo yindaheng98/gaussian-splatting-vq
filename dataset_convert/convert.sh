@@ -19,5 +19,7 @@ convert_n3dv() {
             --load_cameras_path data/$1/frame1
     done
 }
-# for coffee_martini
 convert_n3dv coffee_martini 300
+# convert_n3dv flame_salmon_1 1200
+convert_n3dv flame_steak 300
+convert_n3dv sear_steak 300
