@@ -38,7 +38,7 @@ if not args.skip_matching:
         --image_path " + args.source_path + "/input \
         --ImageReader.camera_model " + args.camera + " \
         --SiftExtraction.use_gpu " + str(use_gpu) + \
-        "--ImageReader.single_camera 1" if args.single_camera else ""
+        " --ImageReader.single_camera 1" if args.single_camera else ""
     exit_code = os.system(feat_extracton_cmd)
     if exit_code != 0:
         logging.error(f"Feature extraction failed with code {exit_code}. Exiting.")
