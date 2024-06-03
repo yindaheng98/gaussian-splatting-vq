@@ -24,5 +24,5 @@ DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
 cd data &&
 git clone https://github.com/colmap/colmap.git -b 3.9.1 && \
 cd colmap && mkdir -p build && cd build && \
-cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=native && \
+CC=/usr/bin/cuda-gcc CXX=/usr/bin/cuda-g++ cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=native -DCUDA_ENABLED=ON -DGUI_ENABLED=OFF && \
 ninja && ninja install
