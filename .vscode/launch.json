@@ -5,6 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "convert",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "convert.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--colmap_executable",
+                ".\\data\\colmap\\COLMAP.bat",
+                "-s",
+                "data/coffee_martini/frame1",
+                "--single_camera_per_image"
+            ]
+        },
+        {
             "name": "train",
             "type": "debugpy",
             "request": "launch",
