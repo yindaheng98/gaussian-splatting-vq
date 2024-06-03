@@ -27,11 +27,25 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/walking/frame1",
+                "data/coffee_martini/frame1",
                 "--model_path",
-                "output/walking/frame1",
+                "output/coffee_martini/frame1"
+            ]
+        },
+        {
+            "name": "train next",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/coffee_martini/frame2",
+                "--model_path",
+                "output/coffee_martini/frame2",
                 "--start_checkpoint",
-                "output/walking/frame1/chkpnt7000.pth",
+                "output/walking/frame1/chkpnt30000.pth",
                 "--start_iter",
                 "0"
             ]
