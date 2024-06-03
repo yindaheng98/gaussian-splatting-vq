@@ -1,4 +1,10 @@
 # !/bin/bash
+# Just an example to get ffmpeg
+wget -O data/ffmpeg-6.0.1-amd64-static.tar.xz https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-6.0.1-amd64-static.tar.xz
+tar -xvf data/ffmpeg-6.0.1-amd64-static.tar.xz ffmpeg-6.0.1-amd64-static/ffmpeg
+mv ffmpeg-6.0.1-amd64-static/ffmpeg data/ffmpeg
+rm -r ffmpeg-6.0.1-amd64-static
+
 # Just an example for extracting datasets
 unzip -o ~/dataset/video/Neural_3D_Video/coffee_martini.zip -d data
 unzip -o ~/dataset/video/Neural_3D_Video/cook_spinach.zip -d data
