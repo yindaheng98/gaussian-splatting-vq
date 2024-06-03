@@ -28,5 +28,4 @@ mkdir -p build && \
 cd build && \
 cmake .. -GNinja -DCMAKE_CUDA_ARCHITECTURES=native && \
 ninja && \
-rm /data/colmap && \
 cp src/colmap/exe/colmap /data
