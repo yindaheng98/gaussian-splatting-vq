@@ -4,6 +4,7 @@ convert_n3dv() {
     python dataset_convert/n3dv2imgs.py \
         --path data/$1 \
         --exec ./data/ffmpeg \
+        --fmt "$3" \
         --n_frames $2 >./temp.sh && ./temp.sh && rm ./temp.sh
     # echo \
     python convert.py \
@@ -19,7 +20,15 @@ convert_n3dv() {
             --load_cameras_path data/$1/frame1
     done
 }
-convert_n3dv coffee_martini 300
-# convert_n3dv flame_salmon_1 1200
-convert_n3dv flame_steak 300
-convert_n3dv sear_steak 300
+
+convert_n3dv coffee_martini 300 "cam[0-9][0-9].mp4"
+convert_n3dv cook_spinach 300 "cam[0-9][0-9].mp4"
+convert_n3dv cut_roasted_beef 300 "cam[0-9][0-9].mp4"
+# convert_n3dv flame_salmon_1 1200 "cam[0-9][0-9].mp4"
+convert_n3dv flame_steak 300 "cam[0-9][0-9].mp4"
+convert_n3dv sear_steak 300 "cam[0-9][0-9].mp4"
+
+convert_n3dv discussion 300 "cam_[0-9]+.mp4"
+convert_n3dv stepin 300 "cam_[0-9]+.mp4"
+convert_n3dv trimming 300 "cam_[0-9]+.mp4"
+convert_n3dv vrheadset 300 "cam_[0-9]+.mp4"

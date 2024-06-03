@@ -6,14 +6,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--exec", type=str, required=True, help="path to the ffmpeg")
 parser.add_argument("--path", type=str, required=True, help="path to the video folder")
 parser.add_argument("--n_frames", type=int, required=True, help="number of frames")
-parser.add_argument("--maxt", type=int, default=4, help="max num of thread")
+parser.add_argument("--fmt", type=str, default=r"cam[0-9][0-9].mp4", help="re format of mp4 file")
+parser.add_argument("--maxt", type=int, default=2, help="max num of thread")
 
 if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
     t = args.maxt
     for entry in os.scandir(root):
-        if not re.match(r"cam[0-9][0-9].mp4", entry.name):
+        if not re.match(args.fmt, entry.name):
             continue
         cam = os.path.splitext(entry.name)[0]
         imgs_dir = root + "/frame%d/input/" + cam + ".png"
