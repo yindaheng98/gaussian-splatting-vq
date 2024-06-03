@@ -63,9 +63,37 @@
                 "--model_path",
                 "output/coffee_martini/frame2",
                 "--start_checkpoint",
-                "output/walking/frame1/chkpnt30000.pth",
+                "output/coffee_martini/frame1/chkpnt30000.pth",
                 "--start_iter",
                 "0"
+            ]
+        },
+        {
+            "name": "render",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "render.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-m",
+                "output/coffee_martini/frame1",
+                "--iteration",
+                "30000"
+            ]
+        },
+        {
+            "name": "render next",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "render.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-m",
+                "output/coffee_martini/frame2",
+                "--iteration",
+                "30000"
             ]
         },
         {
@@ -77,9 +105,9 @@
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/9c62fbe3-d/point_cloud/iteration_30000",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000",
                 "--dst",
-                "output/9c62fbe3-d/point_cloud/iteration_30001",
+                "output/coffee_martini/frame1/point_cloud/iteration_30001",
                 "--log2-clusters",
                 "7",
                 "--log2-clusters-scaling",
@@ -99,13 +127,13 @@
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/9c62fbe3-d/point_cloud/iteration_30002",
+                "output/coffee_martini/frame1/point_cloud/iteration_30002",
                 "--dst",
-                "output/9c62fbe3-d/point_cloud/iteration_30002",
+                "output/coffee_martini/frame1/point_cloud/iteration_30003",
             ]
         },
         {
-            "name": "render",
+            "name": "render vq",
             "type": "debugpy",
             "request": "launch",
             "program": "render.py",
@@ -113,9 +141,9 @@
             "justMyCode": false,
             "args": [
                 "-m",
-                "output/9c62fbe3-d/",
+                "output/coffee_martini/frame1",
                 "--iteration",
-                "30002"
+                "30003"
             ]
         }
     ]
