@@ -53,7 +53,7 @@ if not args.skip_matching:
     if args.load_cameras_module and args.load_cameras_func and args.load_cameras_path:
         mapper_input_arg = "--input_path " + getattr(
             importlib.import_module(args.load_cameras_module), args.load_cameras_func
-        )(args.load_cameras_path, args.source_path, colmap_command)
+        )(args.load_cameras_path, args.source_path, colmap_command, use_gpu)
         mapper_output_path = "/distorted/sparse/0"
         os.makedirs(args.source_path + mapper_output_path, exist_ok=True)
 

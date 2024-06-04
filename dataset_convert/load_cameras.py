@@ -5,7 +5,7 @@ import logging
 import re
 
 
-def load_colmap_cameras(load_cameras_path, dst_path, colmap_command):
+def load_colmap_cameras(load_cameras_path, dst_path, colmap_command, use_gpu):
     src_database = load_cameras_path + "/distorted/database.db"
     dst_database = dst_path + "/distorted/database.db"
     conn = sqlite3.connect(dst_database)
@@ -39,6 +39,15 @@ def load_colmap_cameras(load_cameras_path, dst_path, colmap_command):
             elif re.match("^[0-9]+ ", line):
                 f.writelines([line, "\n"])
     open(mapper_input_path + "/points3D.txt", "w").close()
+    # Feature matching
+    feat_matching_cmd = colmap_command + " exhaustive_matcher \
+        --database_path " + dst_path + "/distorted/database.db \
+        --SiftMatching.use_gpu " + str(use_gpu)
+    exit_code = os.system(feat_matching_cmd)
+    if exit_code != 0:
+        logging.error(f"Feature matching failed with code {exit_code}. Exiting.")
+        exit(exit_code)
+    # Triangulator to get sparse
     triangulator_cmd = colmap_command + " point_triangulator \
         --database_path " + dst_database + " \
         --input_path " + mapper_input_path + " \
