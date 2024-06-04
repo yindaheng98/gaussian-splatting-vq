@@ -62,10 +62,8 @@
                 "data/coffee_martini/frame2",
                 "--model_path",
                 "output/coffee_martini/frame2",
-                "--start_checkpoint",
-                "output/coffee_martini/frame1/chkpnt30000.pth",
-                "--start_iter",
-                "0"
+                "--start_ply",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply"
             ]
         },
         {
