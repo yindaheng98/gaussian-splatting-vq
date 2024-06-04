@@ -59,11 +59,13 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/coffee_martini/frame2",
+                "data/coffee_martini/frame200",
                 "--model_path",
-                "output/coffee_martini/frame2",
+                "output/coffee_martini/frame200",
                 "--start_ply",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply"
+                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
+                "--densify_until_iter",
+                "0"
             ]
         },
         {
@@ -89,9 +91,9 @@
             "justMyCode": false,
             "args": [
                 "-m",
-                "output/coffee_martini/frame2",
+                "output/coffee_martini/frame200",
                 "--iteration",
-                "30000"
+                "7000"
             ]
         },
         {
