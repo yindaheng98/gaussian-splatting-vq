@@ -145,6 +145,23 @@
                 "--iteration",
                 "30003"
             ]
+        },
+        {
+            "name": "debug diff_ply",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/diff_ply.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000",
+                "--dst",
+                "output/coffee_martini/frame200/point_cloud/iteration_7000",
+            ],
+            "env": {
+                "PYTHONPATH": "."
+            }
         }
     ]
 }
