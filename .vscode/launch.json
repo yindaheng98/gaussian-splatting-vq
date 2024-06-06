@@ -65,7 +65,9 @@
                 "--start_ply",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
                 "--densify_until_iter",
-                "0"
+                "0",
+                "--iterations",
+                "7000"
             ]
         },
         {
