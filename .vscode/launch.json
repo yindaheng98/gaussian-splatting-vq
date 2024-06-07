@@ -71,6 +71,26 @@
             ]
         },
         {
+            "name": "train next no densify",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/coffee_martini/frame200",
+                "--model_path",
+                "output/coffee_martini/frame200-nodensify",
+                "--start_ply",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
+                "--densify_until_iter",
+                "0",
+                "--iterations",
+                "7000"
+            ]
+        },
+        {
             "name": "train next incremental",
             "type": "debugpy",
             "request": "launch",

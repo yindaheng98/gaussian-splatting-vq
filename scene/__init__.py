@@ -83,6 +83,7 @@ class Scene:
                                                            "point_cloud.ply"))
             elif isinstance(self.loaded_iter, str):
                 self.gaussians.load_ply(self.loaded_iter)
+            self.gaussians.spatial_lr_scale = self.cameras_extent
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
 
