@@ -15,7 +15,8 @@ from random import randint
 from utils.loss_utils import l1_loss, ssim
 from gaussian_renderer import render
 import sys
-from scene import Scene, GaussianModel
+from scene import Scene #, GaussianModel
+from scene.gaussian_incremental import GaussianModelIncremental as GaussianModel
 from utils.general_utils import safe_state
 import uuid
 from tqdm import tqdm
@@ -28,7 +29,7 @@ try:
 except ImportError:
     TENSORBOARD_FOUND = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, load_ply, debug_from):
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, load_ply, incremental, debug_from):
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
@@ -76,6 +77,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+        if incremental:
+            reg = gaussians.incremental_reg()
+            loss += reg
         loss.backward()
 
         iter_end.record()
@@ -186,6 +190,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[7_000, 30_000])
     parser.add_argument("--start_checkpoint", type=str, default = None)
     parser.add_argument("--start_ply", type=str, default = None)
+    parser.add_argument("--incremental", action='store_true', default=False)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     
@@ -196,7 +201,7 @@ if __name__ == "__main__":
 
     # Start GUI server, configure and run training
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.start_ply, args.debug_from)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.start_ply, args.incremental, args.debug_from)
 
     # All done
     print("\nTraining complete.")
