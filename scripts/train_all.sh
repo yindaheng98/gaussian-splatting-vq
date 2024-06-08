@@ -25,3 +25,13 @@ train() {
 }
 
 train coffee_martini 300 30000
+train cook_spinach 300 30000
+train cut_roasted_beef 300 30000
+train flame_salmon_1 1200 30000
+train flame_steak 300 30000
+train sear_steak 300 30000
+
+train discussion 300 30000
+train stepin 300 30000
+train trimming 300 30000
+train vrheadset 300 30000
