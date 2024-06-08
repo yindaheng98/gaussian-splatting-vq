@@ -83,6 +83,27 @@ The optimizer uses PyTorch and CUDA extensions in a Python environment to produc
 
 ### Setup
 
+#### Prepare environment and datasets
+
+You should first download the datasets:
+
+* `~/dataset/video/Neural_3D_Video`: [N3DV dataset](https://openaccess.thecvf.com/content/CVPR2022/html/Li_Neural_3D_Video_Synthesis_From_Multi-View_Video_CVPR_2022_paper.html)
+* `~/dataset/video/dynamic_nerf_meeting_room_dataset`: [Meeting Room dataset](https://proceedings.neurips.cc//paper_files/paper/2022/hash/57c2cc952f388f6185db98f441351c96-Abstract-Conference.html)
+
+Then run:
+
+```sh
+sudo ./dataset_convert/extract.sh
+```
+
+It will install colmap & ffmpeg and extract the datasets.
+
+#### Convert datasets
+
+```sh
+./dataset_convert/convert.sh
+```
+
 #### Local Setup
 
 Our default, provided install method is based on Conda package and environment management:
@@ -99,6 +120,12 @@ Tip: Downloading packages and creating a new environment with Conda can require 
 conda config --add pkgs_dirs <Drive>/<pkg_path>
 conda env create --file environment.yml --prefix <Drive>/<env_path>/gaussian_splatting
 conda activate <Drive>/<env_path>/gaussian_splatting
+```
+
+#### Train the videos
+
+```sh
+./scripts/train_all.sh
 ```
 
 #### Modifications
