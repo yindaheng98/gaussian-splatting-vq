@@ -60,13 +60,13 @@ class GaussianModelIncremental(GaussianModel):
         last_gaussian = GaussianModel(sh_degree=self.sh_degree)
         last_gaussian.load_ply(path)
 
-        # save last gaussians
-        self._xyz_last = last_gaussian._xyz.detach()
+        _xyz_last = last_gaussian._xyz.detach()
 
         # pre-compute values
-        self.neighbor_indices, dists = simple_knn(self._xyz_last)
+        self.neighbor_indices, dists = simple_knn(_xyz_last)
         self.neighbor_weights = torch.exp(-dists)
         self.neighbor_relative_dists_last = dists
+        self.neighbor_relative_offsets_last = _xyz_last[self.neighbor_indices] - _xyz_last.unsqueeze(-2)
         # pre-compute values
         self.rotation_inv_last = last_gaussian._rotation.detach()
         self.rotation_inv_last[:, 1:] = -1 * self.rotation_inv_last[:, 1:]
@@ -76,18 +76,23 @@ class GaussianModelIncremental(GaussianModel):
         self.load_last_ply(path)
 
     def incremental_reg(self):
-        neighbor_relative_dists = torch.norm(
-            self._xyz.unsqueeze(-2) - self._xyz_last[self.neighbor_indices],
-            p=2, dim=-1)
-        loss_isometry = weighted_l2_loss(
-            neighbor_relative_dists.unsqueeze(-1),
-            self.neighbor_relative_dists_last.unsqueeze(-1),
-            self.neighbor_weights)
-
         rel_rotation = quaternion2rotation(quaternion_mult(self._rotation, self.rotation_inv_last))
         loss_rotation = weighted_l2_loss(
             rel_rotation.unsqueeze(-3),
             rel_rotation[self.neighbor_indices],
             self.neighbor_weights
         )
-        return loss_isometry + loss_rotation
+
+        neighbor_relative_offsets = self._xyz[self.neighbor_indices] - self._xyz.unsqueeze(-2)
+        loss_rigidity = weighted_l2_loss(
+            (rel_rotation.transpose(2, 1).unsqueeze(1) @ neighbor_relative_offsets.unsqueeze(-1)).squeeze(-1),
+            self.neighbor_relative_offsets_last,
+            self.neighbor_weights)
+
+        neighbor_relative_dists = torch.norm(neighbor_relative_offsets, p=2, dim=-1)
+        loss_isometry = weighted_l2_loss(
+            neighbor_relative_dists.unsqueeze(-1),
+            self.neighbor_relative_dists_last.unsqueeze(-1),
+            self.neighbor_weights)
+
+        return loss_rotation + loss_rigidity + loss_isometry
