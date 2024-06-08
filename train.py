@@ -15,8 +15,8 @@ from random import randint
 from utils.loss_utils import l1_loss, ssim
 from gaussian_renderer import render
 import sys
-from scene import Scene #, GaussianModel
-from scene.gaussian_incremental import GaussianModelIncremental as GaussianModel
+from scene import Scene, GaussianModel
+from scene.gaussian_incremental import GaussianModelIncremental
 from utils.general_utils import safe_state
 import uuid
 from tqdm import tqdm
@@ -33,6 +33,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
+    if incremental:
+        gaussians = GaussianModelIncremental(dataset.sh_degree)
     scene = Scene(dataset, gaussians, load_iteration=load_ply)
     gaussians.training_setup(opt)
     if checkpoint:
