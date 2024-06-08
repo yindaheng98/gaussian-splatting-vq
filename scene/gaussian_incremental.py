@@ -76,23 +76,24 @@ class GaussianModelIncremental(GaussianModel):
         self.load_last_ply(path)
 
     def incremental_reg(self):
+        loss = {}
         rel_rotation = quaternion2rotation(quaternion_mult(self._rotation, self.rotation_inv_last))
-        loss_rotation = weighted_l2_loss(
+        loss['rotation'] = weighted_l2_loss(
             rel_rotation.unsqueeze(-3),
             rel_rotation[self.neighbor_indices],
             self.neighbor_weights
         )
 
         neighbor_relative_offsets = self._xyz[self.neighbor_indices] - self._xyz.unsqueeze(-2)
-        loss_rigidity = weighted_l2_loss(
+        loss['rigidity'] = weighted_l2_loss(
             (rel_rotation.transpose(2, 1).unsqueeze(1) @ neighbor_relative_offsets.unsqueeze(-1)).squeeze(-1),
             self.neighbor_relative_offsets_last,
             self.neighbor_weights)
 
         neighbor_relative_dists = torch.norm(neighbor_relative_offsets, p=2, dim=-1)
-        loss_isometry = weighted_l2_loss(
+        loss['isometry'] = weighted_l2_loss(
             neighbor_relative_dists.unsqueeze(-1),
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
-        return dict(rotation=loss_rotation, rigidity=loss_rigidity, isometry=loss_isometry)
+        return loss

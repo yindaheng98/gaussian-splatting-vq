@@ -80,7 +80,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         if incremental:
-            loss_weights = {'rotation': 4.0, 'rigidity': 4.0, 'isometry': 2.0}
+            loss_weights = {'rotation': 1.0, 'rigidity': 1.0, 'isometry': 1.0}
             reg = gaussians.incremental_reg()
             loss += sum([loss_weights[k] * v for k, v in reg.items()])
         loss.backward()
