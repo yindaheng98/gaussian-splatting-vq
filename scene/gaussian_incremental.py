@@ -95,4 +95,4 @@ class GaussianModelIncremental(GaussianModel):
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
-        return loss_rotation + loss_rigidity + loss_isometry
+        return dict(rotation=loss_rotation, rigidity=loss_rigidity, isometry=loss_isometry)
