@@ -85,10 +85,14 @@ class GaussianModelIncremental(GaussianModel):
         )
 
         neighbor_relative_offsets = self._xyz[self.neighbor_indices] - self._xyz.unsqueeze(-2)
-        # loss['rigidity'] = weighted_l2_loss(
-        #     (rel_rotation.transpose(2, 1).unsqueeze(1) @ neighbor_relative_offsets.unsqueeze(-1)).squeeze(-1),
-        #     self.neighbor_relative_offsets_last,
-        #     self.neighbor_weights)
+        neighbor_relative_offsets_in_last_coord = (
+            rel_rotation.transpose(2, 1).unsqueeze(1) @
+            neighbor_relative_offsets.unsqueeze(-1)
+        ).squeeze(-1)
+        loss['rigidity'] = weighted_l2_loss(
+            neighbor_relative_offsets_in_last_coord,
+            self.neighbor_relative_offsets_last,
+            self.neighbor_weights)
 
         neighbor_relative_dists = torch.norm(neighbor_relative_offsets, p=2, dim=-1)
         loss['isometry'] = weighted_l2_loss(
