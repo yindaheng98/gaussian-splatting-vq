@@ -4,7 +4,7 @@ import math
 from .gaussian_model import GaussianModel
 
 
-def simple_knn(xyz: torch.Tensor, n=20, batch=256):
+def simple_knn(xyz: torch.Tensor, n=8, batch=256):
     indxs = torch.zeros(xyz.shape[0], n, dtype=torch.int32, device="cuda")
     dists = torch.zeros(xyz.shape[0], n, dtype=torch.float32, device="cuda")
     progress_bar = tqdm.tqdm(range(xyz.shape[0]), desc="Init Gaussians K nearest")
