@@ -27,24 +27,37 @@ def quaternion_mult(q1, q2):
     return torch.stack([w, x, y, z]).T
 
 
-def quaternion2rotation(q):
-    norm = torch.sqrt(q[:, 0] * q[:, 0] + q[:, 1] * q[:, 1] + q[:, 2] * q[:, 2] + q[:, 3] * q[:, 3])
-    q = q / norm[:, None]
-    rot = torch.zeros((q.size(0), 3, 3), device='cuda')
-    r = q[:, 0]
-    x = q[:, 1]
-    y = q[:, 2]
-    z = q[:, 3]
-    rot[:, 0, 0] = 1 - 2 * (y * y + z * z)
-    rot[:, 0, 1] = 2 * (x * y - r * z)
-    rot[:, 0, 2] = 2 * (x * z + r * y)
-    rot[:, 1, 0] = 2 * (x * y + r * z)
-    rot[:, 1, 1] = 1 - 2 * (x * x + z * z)
-    rot[:, 1, 2] = 2 * (y * z - r * x)
-    rot[:, 2, 0] = 2 * (x * z - r * y)
-    rot[:, 2, 1] = 2 * (y * z + r * x)
-    rot[:, 2, 2] = 1 - 2 * (x * x + y * y)
-    return rot
+def quaternion_to_matrix(quaternions: torch.Tensor) -> torch.Tensor:
+    # From pytorch3d.transforms.rotation_conversions
+    """
+    Convert rotations given as quaternions to rotation matrices.
+
+    Args:
+        quaternions: quaternions with real part first,
+            as tensor of shape (..., 4).
+
+    Returns:
+        Rotation matrices as tensor of shape (..., 3, 3).
+    """
+    r, i, j, k = torch.unbind(quaternions, -1)
+    # pyre-fixme[58]: `/` is not supported for operand types `float` and `Tensor`.
+    two_s = 2.0 / (quaternions * quaternions).sum(-1)
+
+    o = torch.stack(
+        (
+            1 - two_s * (j * j + k * k),
+            two_s * (i * j - k * r),
+            two_s * (i * k + j * r),
+            two_s * (i * j + k * r),
+            1 - two_s * (i * i + k * k),
+            two_s * (j * k - i * r),
+            two_s * (i * k - j * r),
+            two_s * (j * k + i * r),
+            1 - two_s * (i * i + j * j),
+        ),
+        -1,
+    )
+    return o.reshape(quaternions.shape[:-1] + (3, 3))
 
 
 def weighted_l2_loss(x, y, w):
@@ -77,7 +90,7 @@ class GaussianModelIncremental(GaussianModel):
 
     def incremental_reg(self):
         loss = {}
-        rel_rotation = quaternion2rotation(quaternion_mult(self._rotation, self.rotation_inv_last))
+        rel_rotation = quaternion_to_matrix(quaternion_mult(self._rotation, self.rotation_inv_last))
         loss['rotation'] = weighted_l2_loss(
             rel_rotation.unsqueeze(-3),
             rel_rotation[self.neighbor_indices],
