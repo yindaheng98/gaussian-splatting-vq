@@ -19,7 +19,8 @@ train() {
             --iterations $3 \
             --start_ply output/$1/frame$(expr $i - 1)/point_cloud/iteration_$3/point_cloud.ply \
             --densify_until_iter 0 \
-            --position_lr_init 0.0016
+            --position_lr_init 0.0016 \
+            --incremental
         fi
     done
 }
