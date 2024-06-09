@@ -81,8 +81,8 @@ class GaussianModelIncremental(GaussianModel):
         self.neighbor_relative_dists_last = dists
         self.neighbor_relative_offsets_last = _xyz_last[self.neighbor_indices] - _xyz_last.unsqueeze(-2)
         # pre-compute values
-        self.rotation_inv_last = last_gaussian._rotation.detach()
-        self.rotation_inv_last[:, 1:] = -1 * self.rotation_inv_last[:, 1:]
+        self.rotation_matrix_last = quaternion_to_matrix(last_gaussian._rotation.detach())
+        self.rotation_matrix_inv_last = self.rotation_matrix_last.transpose(2, 1)
 
     def load_ply(self, path):
         super().load_ply(path)
@@ -90,16 +90,17 @@ class GaussianModelIncremental(GaussianModel):
 
     def incremental_reg(self):
         loss = {}
-        rel_rotation = quaternion_to_matrix(quaternion_mult(self._rotation, self.rotation_inv_last))
+        rotation_matrix = quaternion_to_matrix(self._rotation)
+        relative_rotation_matrix = rotation_matrix @ self.rotation_matrix_inv_last
         loss['rotation'] = weighted_l2_loss(
-            rel_rotation.unsqueeze(-3),
-            rel_rotation[self.neighbor_indices],
+            relative_rotation_matrix.unsqueeze(-3),
+            relative_rotation_matrix[self.neighbor_indices],
             self.neighbor_weights
         )
 
         neighbor_relative_offsets = self._xyz[self.neighbor_indices] - self._xyz.unsqueeze(-2)
         neighbor_relative_offsets_in_last_coord = (
-            rel_rotation.transpose(2, 1).unsqueeze(1) @
+            relative_rotation_matrix.transpose(2, 1).unsqueeze(1) @
             neighbor_relative_offsets.unsqueeze(-1)
         ).squeeze(-1)
         loss['rigidity'] = weighted_l2_loss(
