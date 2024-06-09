@@ -12,14 +12,14 @@ train() {
         if [ ! -e "$LAST_FRAME" ]; then
             continue
         fi
-        THIS_FRAME="output/$1/frame$i/point_cloud/iteration_$3/point_cloud.ply"
+        THIS_FRAME="output/$1/frame$i/point_cloud/iteration_$4/point_cloud.ply"
         if [ ! -e "$THIS_FRAME" ]; then
         # echo \
         python train.py \
             -s data/$1/frame$i \
             --model_path output/$1/frame$i \
             --iterations $4 \
-            --start_ply output/$1/frame$(expr $i - 1)/point_cloud/iteration_$3/point_cloud.ply \
+            --start_ply "$LAST_FRAME" \
             --densify_until_iter 0 \
             --position_lr_init 0.0016 \
             --incremental
