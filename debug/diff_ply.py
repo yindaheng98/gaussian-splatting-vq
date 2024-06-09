@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source ply.")
 parser.add_argument("--dst", type=str, required=True, help="The destination ply.")
+parser.add_argument("--show", action="store_true")
 
 
 def diff(a, b):
@@ -52,4 +53,7 @@ if __name__ == "__main__":
     ax[3].hist(diff_features_dc.detach().cpu().numpy(), bins=100)
     ax[3].set_ylabel("features_dc")
 
-    plt.show()
+    if args.show:
+        plt.show()
+    else:
+        fig.savefig("diff_ply.png")
