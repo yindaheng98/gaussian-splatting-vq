@@ -79,12 +79,12 @@ class GaussianModelIncremental(GaussianModel):
         self.neighbor_indices, dists = simple_knn(_xyz_last)
         self.neighbor_weights = torch.exp(-dists)
         self.neighbor_relative_dists_last = dists
-        self.neighbor_relative_offsets_last = _xyz_last[self.neighbor_indices] - _xyz_last.unsqueeze(-2)
+        self.neighbor_offsets_last = _xyz_last[self.neighbor_indices] - _xyz_last.unsqueeze(-2)
         # pre-compute values
         self.rotation_matrix_last = quaternion_to_matrix(last_gaussian._rotation.detach())
         self.rotation_matrix_inv_last = self.rotation_matrix_last.transpose(2, 1)
-        self.neighbor_relative_offsets_point_coord_last = (
-            self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_relative_offsets_last.unsqueeze(-1)
+        self.neighbor_offsets_point_coord_last = (
+            self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_offsets_last.unsqueeze(-1)
         ).squeeze(-1)
 
     def load_ply(self, path):
@@ -101,17 +101,17 @@ class GaussianModelIncremental(GaussianModel):
             self.neighbor_weights
         )
 
-        neighbor_relative_offsets = self._xyz[self.neighbor_indices] - self._xyz.unsqueeze(-2)
-        neighbor_relative_offsets_point_coord = (
+        neighbor_offsets = self._xyz[self.neighbor_indices] - self._xyz.unsqueeze(-2)
+        neighbor_offsets_point_coord = (
             rotation_matrix.transpose(2, 1).unsqueeze(1) @
-            neighbor_relative_offsets.unsqueeze(-1)
+            neighbor_offsets.unsqueeze(-1)
         ).squeeze(-1)
         loss['rigidity'] = weighted_l2_loss(
-            neighbor_relative_offsets_point_coord,
-            self.neighbor_relative_offsets_point_coord_last,
+            neighbor_offsets_point_coord,
+            self.neighbor_offsets_point_coord_last,
             self.neighbor_weights)
 
-        neighbor_relative_dists = torch.norm(neighbor_relative_offsets, p=2, dim=-1)
+        neighbor_relative_dists = torch.norm(neighbor_offsets, p=2, dim=-1)
         loss['isometry'] = weighted_l2_loss(
             neighbor_relative_dists.unsqueeze(-1),
             self.neighbor_relative_dists_last.unsqueeze(-1),
