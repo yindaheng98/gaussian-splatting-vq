@@ -154,7 +154,7 @@
                 "--src",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000",
                 "--dst",
-                "output/coffee_martini/frame1/point_cloud/iteration_30001",
+                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
                 "--log2-clusters",
                 "7",
                 "--log2-clusters-scaling",
@@ -174,9 +174,9 @@
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/coffee_martini/frame1/point_cloud/iteration_30002",
+                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
                 "--dst",
-                "output/coffee_martini/frame1/point_cloud/iteration_30003",
+                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
             ]
         },
         {
@@ -238,7 +238,8 @@
                 "--src",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000",
                 "--dst",
-                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
+                "output/coffee_martini/frame2/point_cloud/iteration_7000",
+                "--show",
             ],
             "env": {
                 "PYTHONPATH": "."
