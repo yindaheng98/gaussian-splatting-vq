@@ -1,12 +1,5 @@
 # !/bin/bash
 
-rm -rf data/cameras
-mkdir -p data/cameras
-wget -O data/cameras/cameras.zip https://github.com/yindaheng98/gaussian-splatting-vq/releases/download/v0.0-camera/cameras.zip
-cd data/cameras
-unzip cameras.zip
-cd ../../
-
 convert_n3dv() {
     # echo \
     python dataset_convert/n3dv2imgs.py \

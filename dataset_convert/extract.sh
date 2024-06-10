@@ -22,3 +22,9 @@ unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/vrheadset.zip -d data
 zip -F ~/dataset/video/Neural_3D_Video/flame_salmon_1_split.zip --out flame_salmon_1.zip
 unzip -o flame_salmon_1.zip -d data
 rm flame_salmon_1.zip
+
+mkdir -p data/cameras
+wget -O data/cameras/cameras.zip https://github.com/yindaheng98/gaussian-splatting-vq/releases/download/v0.0-camera/cameras.zip
+cd data/cameras
+unzip cameras.zip
+cd ../../
