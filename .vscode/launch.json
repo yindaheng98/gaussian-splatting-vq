@@ -158,9 +158,13 @@
                 "--iteration",
                 "30000",
                 "--log2-clusters",
-                "10",
+                "9",
                 "--attribute",
-                "rotation",
+                "scaling",
+                // "rotation",
+                // "features_dc",
+                // "features_rest",
+                // "opacity",
             ]
         },
         {
