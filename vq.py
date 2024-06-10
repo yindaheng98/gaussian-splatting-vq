@@ -17,7 +17,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     gaussians = VQGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, "point_cloud.ply"))
-    gaussians.VectorQuant(
+    gaussians.quantize_test_all(
         args.log2_clusters_scaling or args.log2_clusters,
         args.log2_clusters_rotation or args.log2_clusters,
         args.log2_clusters_features_dc or args.log2_clusters,
