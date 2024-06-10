@@ -17,25 +17,58 @@ class Attribute(Enum):
 
 class VQGaussianModel(GaussianModel):
 
-    def kmeans(self, attr: Attribute, log2_clusters: int):
+    def kmeans(self, attr: Attribute, log2_clusters: int, k=0):
         kmeans = KMeans(n_clusters=2**log2_clusters, random_state=0, n_init="auto")
         data = getattr(self, "_" + str(attr)).detach()
-        print(f"{log2_clusters} bit Kmeans for quantization of {attr}. shape: {data.shape}")
-        kmeans.fit(data.cpu())
-        setattr(self, "kmeans_" + str(attr), kmeans)
+        if data.ndim <= 2:
+            print(f"{log2_clusters} bit Kmeans for quantization of {attr}. shape: {data.shape}")
+            kmeans.fit(data.cpu())
+            setattr(self, f"kmeans_{attr}", kmeans)
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                print(f"{log2_clusters} bit Kmeans for quantization of {attr}. shape: {data.shape}")
+                kmeans.fit(data[:, 0, ...].cpu())
+                setattr(self, f"kmeans_{attr}", kmeans)
+            else:
+                print(f"{log2_clusters} bit Kmeans for quantization of {attr} no.{k}. shape: {data.shape}")
+                kmeans.fit(data[:, k, ...].cpu())
+                setattr(self, f"kmeans_{attr}_{k}", kmeans)
+        else:
+            raise ValueError("Not supported")
 
-    def quantize(self, attr: Attribute):
+    def quantize(self, attr: Attribute, k=0):
         print(f"quantize {attr}")
-        kmeans = getattr(self, "kmeans_" + str(attr))
         data = getattr(self, "_" + str(attr)).detach()
-        return kmeans.predict(data.cpu())
+        if data.ndim <= 2:
+            kmeans = getattr(self, f"kmeans_{attr}")
+            quant = kmeans.predict(data.cpu())
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                kmeans = getattr(self, f"kmeans_{attr}")
+                quant = kmeans.predict(data[:, 0, ...].cpu())
+            else:
+                kmeans = getattr(self, f"kmeans_{attr}_{k}")
+                quant = kmeans.predict(data[:, k, ...].cpu())
+        else:
+            raise ValueError("Not supported")
+        return quant
 
-    def dequantize(self, attr: Attribute, quant):
+    def dequantize(self, attr: Attribute, quant, k=0):
         print(f"dequantize {attr}")
-        kmeans = getattr(self, "kmeans_" + str(attr))
         data = getattr(self, "_" + str(attr))
         data.requires_grad_(False)
-        data[...] = torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device)
+        if data.ndim <= 2:
+            kmeans = getattr(self, f"kmeans_{attr}")
+            data[...] = torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device)
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                kmeans = getattr(self, f"kmeans_{attr}")
+                data[:, 0, ...] = torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device)
+            else:
+                kmeans = getattr(self, f"kmeans_{attr}_{k}")
+                data[:, k, ...] = torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device)
+        else:
+            raise ValueError("Not supported")
         data.requires_grad_(True)
 
     def quantize_test(self, attr: Attribute, log2_clusters: int):
