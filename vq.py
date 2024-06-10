@@ -19,6 +19,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     target_relpath = os.path.join("point_cloud", f"iteration_{args.iteration}", "point_cloud.ply")
     os.makedirs(os.path.dirname(os.path.join(args.dst, target_relpath)), exist_ok=True)
+    shutil.copy2(os.path.join(args.src, "cameras.json"), os.path.join(args.dst, "cameras.json"))
     shutil.copy2(os.path.join(args.src, "cfg_args"), os.path.join(args.dst, "cfg_args"))
     gaussians = VQGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
