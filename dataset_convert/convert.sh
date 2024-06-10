@@ -1,4 +1,12 @@
 # !/bin/bash
+
+rm -rf data/cameras
+mkdir -p data/cameras
+wget -O data/cameras/cameras.zip https://github.com/yindaheng98/gaussian-splatting-vq/releases/download/v0.0-camera/cameras.zip
+cd data/cameras
+unzip cameras.zip
+cd ../../
+
 convert_n3dv() {
     # echo \
     python dataset_convert/n3dv2imgs.py \
@@ -7,7 +15,10 @@ convert_n3dv() {
         --fmt "$3" \
         --n_frames $2 >./temp.sh && \
         chmod +x ./temp.sh && ./temp.sh && rm ./temp.sh
-    # echo \
+    # extract first camera from dataset
+    rm -rf "data/$1/frame1" && cp -r "data/cameras/$1/frame1" "data/$1/frame1"
+    # or extract first camera by colmap
+    echo \
     python convert.py \
         -s "data/$1/frame1" \
         --single_camera_per_image \
