@@ -72,9 +72,9 @@ class VQGaussianModel(GaussianModel):
             raise ValueError("Not supported")
         data.requires_grad_(True)
 
-    def quantize_test(self, attr: Attribute, log2_clusters: int):
+    def quantize_test(self, attr: Attribute, log2_clusters: int, k=0):
         self.kmeans(attr, log2_clusters)
-        self.dequantize(attr, self.quantize(attr))
+        self.dequantize(attr, self.quantize(attr, k))
 
     def quantize_test_all(self,
                           log2_clusters_scaling,
@@ -86,4 +86,7 @@ class VQGaussianModel(GaussianModel):
         self.quantize_test(Attribute.rotation, log2_clusters_rotation)
         self.quantize_test(Attribute.features_dc, log2_clusters_features_dc)
         self.quantize_test(Attribute.features_rest, log2_clusters_features_rest)
+        self._features_rest.requires_grad_(False)
+        self._features_rest[:, 1:, ...] = 0
+        self._features_rest.requires_grad_(True)
         self.quantize_test(Attribute.opacity, log2_clusters_opacity)
