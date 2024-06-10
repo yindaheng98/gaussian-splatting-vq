@@ -7,6 +7,7 @@ save_cameras() {
 }
 
 rm -rf data/cameras
+mkdir -p data/cameras
 
 save_cameras coffee_martini
 save_cameras cook_spinach
@@ -19,3 +20,7 @@ save_cameras discussion
 save_cameras stepin
 save_cameras trimming
 save_cameras vrheadset
+
+cd data/cameras
+rm cameras.zip
+zip -r cameras.zip ./
