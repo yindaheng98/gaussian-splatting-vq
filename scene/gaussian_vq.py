@@ -1,4 +1,6 @@
 import torch
+import pickle
+import os
 from sklearn.cluster import KMeans
 from .gaussian_model import GaussianModel
 from enum import Enum
@@ -49,6 +51,13 @@ class VQGaussianModel(GaussianModel):
         print(f"{log2_clusters} bit Kmeans {self.kmeans_name(attr, k)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
         setattr(self, self.kmeans_name(attr, k), kmeans)
+
+    def save_kmeans(self, dirpath, attr: Attribute, k=0):
+        path = os.path.join(dirpath, self.kmeans_name(attr, k) + ".pkl")
+        kmeans = getattr(self, self.kmeans_name(attr, k))
+        print(f"save {path}.")
+        with open(path, "wb") as f:
+            pickle.dump(kmeans, f)
 
     def quantize(self, attr: Attribute, k=0):
         kmeans = getattr(self, self.kmeans_name(attr, k))

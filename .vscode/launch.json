@@ -144,6 +144,26 @@
             ]
         },
         {
+            "name": "kmeans",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "kmeans.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1",
+                "--dst",
+                "output/vq-coffee_martini/frame1",
+                "--iteration",
+                "30000",
+                "--log2-clusters",
+                "10",
+                "--attribute",
+                "rotation",
+            ]
+        },
+        {
             "name": "vq",
             "type": "debugpy",
             "request": "launch",
