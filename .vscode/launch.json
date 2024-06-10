@@ -157,6 +157,7 @@
                 "output/vq-coffee_martini/frame1",
                 "--iteration",
                 "30000",
+                "kmeans",
                 "--log2-clusters",
                 "9",
                 "--attribute",
