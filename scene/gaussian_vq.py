@@ -1,6 +1,7 @@
 import torch
 import pickle
 import os
+import re
 from sklearn.cluster import KMeans
 from .gaussian_model import GaussianModel
 from enum import Enum
@@ -59,6 +60,13 @@ class VQGaussianModel(GaussianModel):
         with open(path, "wb") as f:
             pickle.dump(kmeans, f)
 
+    def load_kmeans(self, dirpath, attr: Attribute, i=0):
+        path = os.path.join(dirpath, self.kmeans_name(attr, i) + ".pkl")
+        print(f"load {path}.")
+        with open(path, "rb") as f:
+            kmeans = pickle.load(f)
+            setattr(self, self.kmeans_name(attr, i), kmeans)
+
     def quantize(self, attr: Attribute, i=0):
         kmeans = getattr(self, self.kmeans_name(attr, i))
         data = self.kmeans_data(attr, i)
@@ -80,6 +88,29 @@ class VQGaussianModel(GaussianModel):
         else:
             raise ValueError("Not supported")
         data.requires_grad_(True)
+
+    def load_kmeans_and_test(self, dirpath, attr: Attribute, i=0):
+        self.load_kmeans(dirpath, attr, i)
+        self.dequantize(attr, self.quantize(attr, i))
+
+    def kmeans_param_from_name(self, name):
+        find = re.findall(r"kmeans_([a-z_]+)_([0-9]+)", name)
+        if len(find) <= 0:
+            find = re.findall(r"kmeans_([a-z_]+)", name)
+            (attr,) = find
+            i = 0
+        else:
+            attr, i = find[0]
+            i = int(i)
+        return attr, i
+
+    def load_kmeans_and_test_all(self, dirpath):
+        for entry in os.scandir(dirpath):
+            name, ext = os.path.splitext(entry.name)
+            if not ext == ".pkl":
+                continue
+            attr, i = self.kmeans_param_from_name(name)
+            self.load_kmeans_and_test(dirpath, attr, i)
 
     def quantize_test(self, attr: Attribute, log2_clusters: int, i=0):
         self.kmeans(attr, log2_clusters)
