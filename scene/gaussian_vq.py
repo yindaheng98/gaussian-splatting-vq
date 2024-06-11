@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import pickle
 import os
 import re
@@ -53,11 +54,10 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         pass
 
     def save_codebook(self, dirpath, attr: Attribute, i=0):
-        path = os.path.join(dirpath, self.get_name(attr, i) + ".pkl")
+        path = os.path.join(dirpath, self.get_name(attr, i) + ".npz")
         kmeans = getattr(self, self.get_name(attr, i))
         print(f"save codebook {path}.")
-        with open(path, "wb") as f:
-            pickle.dump(kmeans, f)
+        np.savez(path, codebook=kmeans.cpu().numpy())
 
     def load_codebook(self, dirpath, attr: Attribute, i=0):
         path = os.path.join(dirpath, self.get_name(attr, i) + ".pkl")
@@ -116,11 +116,12 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
-        kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0, n_init="auto", verbose=1, batch_size=2**log2_clusters)
-        data = self.get_data(attr, i)
+        kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
+                        n_init="auto", verbose=1, batch_size=2**log2_clusters)
+        data = self.get_data(attr, i).detach()
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
-        setattr(self, self.get_name(attr, i), kmeans)
+        setattr(self, self.get_name(attr, i), torch.FloatTensor(kmeans.cluster_centers_).to(data.device))
 
     def quantize(self, attr: Attribute, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
