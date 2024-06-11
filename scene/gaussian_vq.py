@@ -116,7 +116,7 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
-        kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0, n_init="auto", verbose=1)
+        kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0, n_init="auto", verbose=1, batch_size=2**log2_clusters)
         data = self.get_data(attr, i)
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
@@ -130,9 +130,13 @@ class KMeansGaussianModel(VQGaussianModel):
 
     def dequantize(self, attr: Attribute, quant, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
-        data = getattr(self, "_" + str(attr))
-        print(f"dequantize by {self.get_name(attr, i)}.")
-        self.set_data(attr, torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device), i)
+        data = self.get_data(attr, i).detach()
+        dequantized = torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device)
+        mean = torch.abs(data).mean(dim=0)
+        mean_dequantized = torch.abs(dequantized).mean(dim=0)
+        loss = torch.abs(dequantized - data).mean(dim=0)
+        self.set_data(attr, dequantized, i)
+        print(f"dequantized by {self.get_name(attr, i)}. Loss: {loss}. Mean: {mean_dequantized}. Mean Shift: {mean - mean_dequantized}")
 
     def load_and_test(self, dirpath, attr: Attribute, i=0):
         self.load_codebook(dirpath, attr, i)
