@@ -159,7 +159,7 @@
                 "30000",
                 "build",
                 "--log2-clusters",
-                "9",
+                "16",
                 "--attribute",
                 "scaling",
                 // "rotation",

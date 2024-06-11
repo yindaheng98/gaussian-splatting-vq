@@ -3,7 +3,7 @@ import pickle
 import os
 import re
 import abc
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from .gaussian_model import GaussianModel
 from enum import Enum
 
@@ -116,7 +116,7 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
-        kmeans = KMeans(n_clusters=2**log2_clusters, random_state=0, n_init="auto")
+        kmeans = MiniBatchKMeans(n_clusters=2**log2_clusters, random_state=0, n_init="auto", verbose=1)
         data = self.get_data(attr, i)
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
