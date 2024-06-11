@@ -60,11 +60,11 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         np.savez(path, codebook=kmeans.cpu().numpy())
 
     def load_codebook(self, dirpath, attr: Attribute, i=0):
-        path = os.path.join(dirpath, self.get_name(attr, i) + ".pkl")
+        path = os.path.join(dirpath, self.get_name(attr, i) + ".npz")
+        data = self.get_data(attr, i)
         print(f"load codebook {path}.")
-        with open(path, "rb") as f:
-            kmeans = pickle.load(f)
-            setattr(self, self.get_name(attr, i), kmeans)
+        kmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
+        setattr(self, self.get_name(attr, i), kmeans)
 
     @abc.abstractmethod
     def quantize(self, attr: Attribute, i=0):
@@ -106,7 +106,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def load_and_test_all(self, dirpath):
         for entry in os.scandir(dirpath):
             name, ext = os.path.splitext(entry.name)
-            if not ext == ".pkl":
+            if not ext == ".npz":
                 continue
             attr, i = self.parse_name(name)
             self.load_and_test(dirpath, attr, i)
@@ -114,6 +114,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
 class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
+    batch = 4096
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
         kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
@@ -125,14 +126,19 @@ class KMeansGaussianModel(VQGaussianModel):
 
     def quantize(self, attr: Attribute, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
-        data = self.get_data(attr, i)
+        data = self.get_data(attr, i).detach()
         print(f"quantize by {self.get_name(attr, i)}. shape: {data.shape}")
-        return kmeans.predict(data.cpu())
+        quantized = torch.zeros(data.shape[0], dtype=torch.int32, device=data.device)
+        for i in range(0, data.shape[0], self.batch):
+            step = self.batch if i+self.batch < data.shape[0] else i+self.batch - data.shape[0]
+            dist = torch.norm(data[i:i+step, ...].unsqueeze(1) - kmeans.unsqueeze(0), p=2, dim=2)
+            quantized[i:i+step] = dist.argmin(dim=1)
+        return quantized
 
     def dequantize(self, attr: Attribute, quant, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
         data = self.get_data(attr, i).detach()
-        dequantized = torch.tensor(kmeans.cluster_centers_[quant], dtype=data.dtype, device=data.device)
+        dequantized = torch.tensor(kmeans[quant], dtype=data.dtype, device=data.device)
         mean = torch.abs(data).mean(dim=0).cpu().numpy()
         mean_dequantized = torch.abs(dequantized).mean(dim=0).cpu().numpy()
         loss = torch.abs(dequantized - data).mean(dim=0).cpu().numpy()
