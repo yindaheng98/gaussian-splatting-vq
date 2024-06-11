@@ -4,7 +4,7 @@ from scene.gaussian_vq import KMeansGaussianModel, Attribute
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source dir.")
-parser.add_argument("--dst", type=str, required=True, help="The destination dir.")
+parser.add_argument("--save", type=str, required=True, help="Where to save the codebook.")
 parser.add_argument("--iteration", type=int, required=True, help="The source iteration.")
 
 # https://gist.github.com/mivade/384c2c41c3a29c637cb6c603d4197f9f
@@ -51,17 +51,19 @@ def build(args):
     gaussians = KMeansGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.build_codebook(args.attribute, args.log2_clusters, args.index)
-    gaussians.save_codebook(os.path.join(args.dst, target_reldir), args.attribute, args.index)
+    gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
 
 
-@subcommand()
+@subcommand([
+    argument("--dst", type=str, required=True, help="The destination dir.")
+])
 def quantize(_):
     args = parser.parse_args()
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     gaussians = KMeansGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.load_and_test_all(os.path.join(args.dst, target_reldir))
+    gaussians.load_and_test_all(os.path.join(args.save, target_reldir))
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
 
 

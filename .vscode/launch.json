@@ -153,7 +153,7 @@
             "args": [
                 "--src",
                 "output/coffee_martini/frame1",
-                "--dst",
+                "--save",
                 "output/vq-coffee_martini/frame1",
                 "--iteration",
                 "30000",
@@ -178,11 +178,13 @@
             "args": [
                 "--src",
                 "output/coffee_martini/frame1",
-                "--dst",
+                "--save",
                 "output/vq-coffee_martini/frame1",
                 "--iteration",
                 "30000",
                 "quantize",
+                "--dst",
+                "output/vq-coffee_martini/frame1",
             ]
         },
         {

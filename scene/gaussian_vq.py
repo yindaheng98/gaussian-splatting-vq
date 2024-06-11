@@ -54,6 +54,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         pass
 
     def save_codebook(self, dirpath, attr: Attribute, i=0):
+        os.makedirs(dirpath, exist_ok=True)
         path = os.path.join(dirpath, self.get_name(attr, i) + ".npz")
         kmeans = getattr(self, self.get_name(attr, i))
         print(f"save codebook {path}.")
