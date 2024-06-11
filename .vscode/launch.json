@@ -275,6 +275,8 @@
             "args": [
                 "--src",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000",
+                "--dst",
+                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
             ],
             "env": {
                 "PYTHONPATH": "."
