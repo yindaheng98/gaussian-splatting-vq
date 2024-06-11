@@ -3,7 +3,7 @@ build() {
     # echo \
     python kmeans.py \
         --src output/$1/frame$2 \
-        --dst output/vq-$1/frame$2 \
+        --save output/vq-$1/frame$2 \
         --iteration $3 \
         build \
         --log2-clusters $4 \
