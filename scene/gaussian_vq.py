@@ -116,7 +116,7 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
     quant_batch = 4096
     @staticmethod
-    def kmeans_batch(log2_clusters): return 4096 # 2**log2_clusters
+    def kmeans_batch(log2_clusters): return 2**log2_clusters
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
         kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
