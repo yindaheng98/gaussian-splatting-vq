@@ -144,7 +144,7 @@
             ]
         },
         {
-            "name": "kmeans",
+            "name": "kmeans build",
             "type": "debugpy",
             "request": "launch",
             "program": "kmeans.py",
@@ -157,7 +157,7 @@
                 "output/vq-coffee_martini/frame1",
                 "--iteration",
                 "30000",
-                "kmeans",
+                "build",
                 "--log2-clusters",
                 "9",
                 "--attribute",
@@ -166,6 +166,23 @@
                 // "features_dc",
                 // "features_rest",
                 // "opacity",
+            ]
+        },
+        {
+            "name": "kmeans quantize",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "kmeans.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1",
+                "--dst",
+                "output/vq-coffee_martini/frame1",
+                "--iteration",
+                "30000",
+                "quantize",
             ]
         },
         {
