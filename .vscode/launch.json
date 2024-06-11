@@ -264,6 +264,21 @@
             "env": {
                 "PYTHONPATH": "."
             }
+        },
+        {
+            "name": "debug show_distribution",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/show_distribution.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000",
+            ],
+            "env": {
+                "PYTHONPATH": "."
+            }
         }
     ]
 }
