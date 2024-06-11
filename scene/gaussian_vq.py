@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import pickle
 import os
 import re
 import abc
@@ -115,11 +114,13 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
 class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
-    batch = 4096
+    quant_batch = 4096
+    @staticmethod
+    def kmeans_batch(log2_clusters): return 2**log2_clusters
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
         kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
-                        n_init="auto", verbose=1, batch_size=2**log2_clusters)
+                        n_init="auto", verbose=1, batch_size=self.kmeans_batch(log2_clusters))
         data = self.get_data(attr, i).detach()
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
@@ -130,8 +131,8 @@ class KMeansGaussianModel(VQGaussianModel):
         data = self.get_data(attr, i).detach()
         print(f"quantize by {self.get_name(attr, i)}. shape: {data.shape}")
         quantized = torch.zeros(data.shape[0], dtype=torch.int32, device=data.device)
-        for i in range(0, data.shape[0], self.batch):
-            step = self.batch if i+self.batch < data.shape[0] else i+self.batch - data.shape[0]
+        for i in range(0, data.shape[0], self.quant_batch):
+            step = self.quant_batch if i+self.quant_batch < data.shape[0] else i+self.quant_batch - data.shape[0]
             dist = torch.norm(data[i:i+step, ...].unsqueeze(1) - kmeans.unsqueeze(0), p=2, dim=2)
             quantized[i:i+step] = dist.argmin(dim=1)
         return quantized
