@@ -50,8 +50,8 @@ def build(args):
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     gaussians = VQGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.kmeans(args.attribute, args.log2_clusters, args.index)
-    gaussians.save_kmeans(os.path.join(args.dst, target_reldir), args.attribute, args.index)
+    gaussians.build_codebook(args.attribute, args.log2_clusters, args.index)
+    gaussians.save_codebook(os.path.join(args.dst, target_reldir), args.attribute, args.index)
 
 
 @subcommand()
@@ -61,7 +61,7 @@ def quantize(_):
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     gaussians = VQGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.load_kmeans_and_test_all(os.path.join(args.dst, target_reldir))
+    gaussians.load_and_test_all(os.path.join(args.dst, target_reldir))
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
 
 

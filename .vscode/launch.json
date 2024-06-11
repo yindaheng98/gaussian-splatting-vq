@@ -186,30 +186,6 @@
             ]
         },
         {
-            "name": "vq",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "vq.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--src",
-                "output/coffee_martini/frame1",
-                "--dst",
-                "output/vq-coffee_martini/frame1",
-                "--iteration",
-                "30000",
-                "--log2-clusters",
-                "7",
-                "--log2-clusters-scaling",
-                "10",
-                "--log2-clusters-rotation",
-                "10",
-                "--log2-clusters-features_dc",
-                "4",
-            ]
-        },
-        {
             "name": "ply23dgs",
             "type": "debugpy",
             "request": "launch",
