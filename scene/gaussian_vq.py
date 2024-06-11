@@ -116,7 +116,7 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
-        kmeans = MiniBatchKMeans(n_clusters=2**log2_clusters, random_state=0, n_init="auto", verbose=1)
+        kmeans = MiniBatchKMeans(n_clusters=2**log2_clusters, init='random', random_state=0, n_init="auto", verbose=1)
         data = self.get_data(attr, i)
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
