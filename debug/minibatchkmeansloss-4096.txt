@@ -1,0 +1,28 @@
+load codebook output/vq-coffee_martini/frame1\point_cloud\iteration_30000\kmeans_features_dc.npz.
+quantize by kmeans_features_dc. shape: torch.Size([568091, 3])
+dequantized loss:       [0.02020114 0.02042859 0.02125812]
+dequantized mean:       [1.0268078 1.0869366 1.1271856]
+dequantize  mean shift: [-0.00100124 -0.00075698 -0.00153387]
+load codebook output/vq-coffee_martini/frame1\point_cloud\iteration_30000\kmeans_features_rest_0.npz.
+quantize by kmeans_features_rest_0. shape: torch.Size([568091, 3])
+dequantized by kmeans_features_rest_0.
+dequantized loss:       [0.00310708 0.00320527 0.00351427]
+dequantized mean:       [0.08153628 0.07753008 0.0860934 ]
+dequantize  mean shift: [-0.00042892 -0.0005597  -0.00085924]
+load codebook output/vq-coffee_martini/frame1\point_cloud\iteration_30000\kmeans_opacity.npz.quantize by kmeans_opacity. shape: torch.Size([568091, 1])
+dequantized by kmeans_opacity.
+dequantized loss:       [0.01538491]
+dequantized mean:       [3.3865182]
+dequantize  mean shift: [0.01518369]
+load codebook output/vq-coffee_martini/frame1\point_cloud\iteration_30000\kmeans_rotation.npz.
+quantize by kmeans_rotation. shape: torch.Size([568091, 4])
+dequantized by kmeans_rotation.
+dequantized loss:       [0.01857263 0.01715797 0.01715423 0.01858772]
+dequantized mean:       [0.9303365  0.22422402 0.2807529  0.22188845]
+dequantize  mean shift: [ 0.00256371  0.00203648  0.00096837 -0.00077789]
+load codebook output/vq-coffee_martini/frame1\point_cloud\iteration_30000\kmeans_scaling.npz.
+quantize by kmeans_scaling. shape: torch.Size([568091, 3])
+dequantized by kmeans_scaling.
+dequantized loss:       [0.07119604 0.07509267 0.07230854]
+dequantized mean:       [5.4555497 5.6509666 5.425063 ]
+dequantize  mean shift: [-0.00318527  0.01301622  0.00284386]

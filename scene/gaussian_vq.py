@@ -116,7 +116,7 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
     quant_batch = 4096
     @staticmethod
-    def kmeans_batch(log2_clusters): return 2**log2_clusters
+    def kmeans_batch(log2_clusters): return 4096 # 2**log2_clusters
 
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
         kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
@@ -140,7 +140,7 @@ class KMeansGaussianModel(VQGaussianModel):
     def dequantize(self, attr: Attribute, quant, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
         data = self.get_data(attr, i).detach()
-        dequantized = torch.tensor(kmeans[quant], dtype=data.dtype, device=data.device)
+        dequantized = kmeans[quant]
         mean = torch.abs(data).mean(dim=0).cpu().numpy()
         mean_dequantized = torch.abs(dequantized).mean(dim=0).cpu().numpy()
         loss = torch.abs(dequantized - data).mean(dim=0).cpu().numpy()
