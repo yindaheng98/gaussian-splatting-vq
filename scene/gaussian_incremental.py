@@ -87,7 +87,7 @@ class GaussianModelIncremental(GaussianModel):
             self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_offsets_last.unsqueeze(-1)
         ).squeeze(-1)
         self.stretch_coef = torch.sign(self.neighbor_offsets_point_coord_last)
-        self.neighbor_scalings = last_gaussian._scaling.detach()
+        self._scaling_last = last_gaussian._scaling.detach()
 
     def load_ply(self, path):
         super().load_ply(path)
@@ -119,7 +119,7 @@ class GaussianModelIncremental(GaussianModel):
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
-        relative_scaling = self._scaling / self.neighbor_scalings
+        relative_scaling = self._scaling / self._scaling_last # maybe very large
         neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
         loss['stretch'] = weighted_l2_loss(
             relative_scaling.unsqueeze(1),
