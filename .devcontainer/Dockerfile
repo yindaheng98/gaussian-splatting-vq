@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.4.3-devel-ubuntu20.04
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
 
 COPY ./submodules /gaussian-splatting/submodules
 COPY ./environment.yml /gaussian-splatting/environment.yml
@@ -11,7 +11,7 @@ RUN echo "Installing apt packages..." \
 	&& apt -y install software-properties-common \
 	&& add-apt-repository ppa:deadsnakes/ppa \
 	&& apt -y update --no-install-recommends \
-	&& apt -y install --no-install-recommends wget git cmake python3.7 \
+	&& apt -y install --no-install-recommends wget git cmake python3.11 \
 	&& apt autoremove -y \
 	&& apt clean -y \
 	&& ln -s $(which cuda-gdb) /usr/bin/gdb
