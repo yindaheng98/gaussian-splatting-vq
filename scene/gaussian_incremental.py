@@ -65,6 +65,9 @@ def weighted_l2_loss(x, y, w):
 
 
 class GaussianModelIncremental(GaussianModel):
+    loss_weight_overall = 0.5
+    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 0.1}
+
     def __init__(self, sh_degree: int):
         super().__init__(sh_degree=sh_degree)
         self.sh_degree = sh_degree
@@ -131,4 +134,5 @@ class GaussianModelIncremental(GaussianModel):
             (neighbor_relative_scaling + neighbor_relative_stretch) / 2,
             self.neighbor_weights)
 
-        return loss
+        weighted_loss = sum([self.loss_weights[k] * v for k, v in loss.items()])
+        return weighted_loss * self.loss_weight_overall
