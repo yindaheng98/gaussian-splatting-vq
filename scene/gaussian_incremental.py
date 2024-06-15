@@ -66,7 +66,7 @@ def weighted_l2_loss(x, y, w):
 
 class GaussianModelIncremental(GaussianModel):
     loss_weight_overall = 0.5
-    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 0.1}
+    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 5.0}
 
     def __init__(self, sh_degree: int):
         super().__init__(sh_degree=sh_degree)
@@ -84,12 +84,11 @@ class GaussianModelIncremental(GaussianModel):
         self.neighbor_relative_dists_last = dists
         self.neighbor_offsets_last = _xyz_last[self.neighbor_indices] - _xyz_last.unsqueeze(-2)
         # pre-compute values
-        self.rotation_matrix_last = quaternion_to_matrix(last_gaussian._rotation.detach())
+        self.rotation_matrix_last = quaternion_to_matrix(last_gaussian.get_rotation.detach())
         self.rotation_matrix_inv_last = self.rotation_matrix_last.transpose(2, 1)
         self.neighbor_offsets_point_coord_last = (
             self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_offsets_last.unsqueeze(-1)
         ).squeeze(-1)
-        self.stretch_coef = torch.sign(self.neighbor_offsets_point_coord_last)
         self._scaling_last = last_gaussian._scaling.detach()
 
     def load_ply(self, path):
@@ -98,7 +97,7 @@ class GaussianModelIncremental(GaussianModel):
 
     def incremental_reg(self):
         loss = {}
-        rotation_matrix = quaternion_to_matrix(self._rotation)
+        rotation_matrix = quaternion_to_matrix(self.get_rotation)
         relative_rotation_matrix = rotation_matrix @ self.rotation_matrix_inv_last
         loss['rotation'] = weighted_l2_loss(
             relative_rotation_matrix.unsqueeze(-3),
@@ -122,16 +121,11 @@ class GaussianModelIncremental(GaussianModel):
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
-        relative_scaling = torch.clamp(
-            self._scaling / self._scaling_last,  # self._scaling / self._scaling_last maybe very large
-            -2.0, 2.0)
+        relative_scaling = self._scaling - self._scaling_last
         neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
-        neighbor_relative_stretch = torch.clamp(
-            neighbor_offsets_point_coord / self.neighbor_offsets_point_coord_last,  # also very large
-            -2.0, 2.0)
         loss['stretch'] = weighted_l2_loss(
             relative_scaling.unsqueeze(1),
-            (neighbor_relative_scaling + neighbor_relative_stretch) / 2,
+            neighbor_relative_scaling,
             self.neighbor_weights)
 
         weighted_loss = sum([self.loss_weights[k] * v for k, v in loss.items()])
