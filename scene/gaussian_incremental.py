@@ -66,7 +66,7 @@ def weighted_l2_loss(x, y, w):
 
 class GaussianModelIncremental(GaussianModel):
     loss_weight_overall = 0.5
-    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 5.0}
+    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0}
 
     def __init__(self, sh_degree: int):
         super().__init__(sh_degree=sh_degree)
