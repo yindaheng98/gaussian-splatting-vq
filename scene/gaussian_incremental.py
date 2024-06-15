@@ -119,9 +119,13 @@ class GaussianModelIncremental(GaussianModel):
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
-        relative_scaling = torch.clamp(self._scaling / self._scaling_last, 0.5, 2.0)  # self._scaling / self._scaling_last maybe very large
+        relative_scaling = torch.clamp(
+            self._scaling / self._scaling_last,  # self._scaling / self._scaling_last maybe very large
+            -2.0, 2.0)
         neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
-        neighbor_relative_stretch = torch.clamp(neighbor_offsets_point_coord / self.neighbor_offsets_point_coord_last, 0.5, 2.0)
+        neighbor_relative_stretch = torch.clamp(
+            neighbor_offsets_point_coord / self.neighbor_offsets_point_coord_last,  # also very large
+            -2.0, 2.0)
         loss['stretch'] = weighted_l2_loss(
             relative_scaling.unsqueeze(1),
             (neighbor_relative_scaling + neighbor_relative_stretch) / 2,
