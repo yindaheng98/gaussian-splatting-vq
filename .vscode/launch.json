@@ -260,7 +260,25 @@
                 "--src",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000",
                 "--dst",
-                "output/coffee_martini/frame2/point_cloud/iteration_7000",
+                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
+                "--show",
+            ],
+            "env": {
+                "PYTHONPATH": "."
+            }
+        },
+        {
+            "name": "debug diff_ply_sh incremental",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/diff_ply_sh.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000",
+                "--dst",
+                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
                 "--show",
             ],
             "env": {
