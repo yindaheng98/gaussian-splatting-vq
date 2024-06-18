@@ -66,7 +66,7 @@ def weighted_l2_loss(x, y, w):
 
 class GaussianModelIncremental(GaussianModel):
     neighbors = 8
-    stretch_shrink_start = 3
+    stretch_shrink_start = 4
     loss_weight_overall = 0.5
     loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0}
 
