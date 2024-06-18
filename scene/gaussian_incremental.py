@@ -64,11 +64,15 @@ def weighted_l2_loss(x, y, w):
     return torch.sqrt((torch.flatten(x - y, start_dim=2) ** 2).sum(-1) * w + 1e-20).mean()
 
 
+def color_l2_loss(x, y):
+    return torch.sqrt((torch.flatten(x - y, start_dim=1) ** 2).sum(-1) + 1e-20).mean()
+
+
 class GaussianModelIncremental(GaussianModel):
     neighbors = 8
     stretch_shrink_start = 4
     loss_weight_overall = 0.5
-    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0}
+    loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0, 'color': 10.0}
 
     def reg(self):
         relative_scaling = self._scaling - self.stretch_shrink_start
@@ -84,6 +88,7 @@ class GaussianModelIncremental(GaussianModel):
         last_gaussian = GaussianModel(sh_degree=self.sh_degree)
         last_gaussian.load_ply(path)
 
+        self._features_dc_last = last_gaussian._features_dc.detach()
         _xyz_last = last_gaussian._xyz.detach()
 
         # pre-compute values
@@ -158,6 +163,11 @@ class GaussianModelIncremental(GaussianModel):
             relative_scaling.unsqueeze(1),
             neighbor_relative_scaling,
             self.neighbor_weights)
+
+        loss['color'] = color_l2_loss(
+            self._features_dc,
+            self._features_dc_last
+        )
 
         weighted_loss = sum([self.loss_weights[k] * v for k, v in loss.items()])
         return weighted_loss * self.loss_weight_overall

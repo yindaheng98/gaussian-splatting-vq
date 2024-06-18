@@ -61,48 +61,6 @@
                 "-s",
                 "data/coffee_martini/frame200",
                 "--model_path",
-                "output/coffee_martini/frame200",
-                "--start_ply",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
-                "--densify_until_iter",
-                "3500",
-                "--iterations",
-                "7000"
-            ]
-        },
-        {
-            "name": "train next no densify",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "train.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "-s",
-                "data/coffee_martini/frame200",
-                "--model_path",
-                "output/coffee_martini/frame200-nodensify",
-                "--start_ply",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
-                "--densify_until_iter",
-                "0",
-                "--iterations",
-                "7000",
-                "--position_lr_init",
-                "0.0016"
-            ]
-        },
-        {
-            "name": "train next incremental",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "train.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "-s",
-                "data/coffee_martini/frame200",
-                "--model_path",
                 "output/coffee_martini/frame200-incremental",
                 "--start_ply",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
@@ -138,7 +96,7 @@
             "justMyCode": false,
             "args": [
                 "-m",
-                "output/coffee_martini/frame200",
+                "output/coffee_martini/frame200-incremental",
                 "--iteration",
                 "7000"
             ]
@@ -226,40 +184,6 @@
                 "--src",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000",
                 "--dst",
-                "output/coffee_martini/frame200/point_cloud/iteration_7000",
-            ],
-            "env": {
-                "PYTHONPATH": "."
-            }
-        },
-        {
-            "name": "debug diff_ply nodensify",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "debug/diff_ply.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--src",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000",
-                "--dst",
-                "output/coffee_martini/frame200-nodensify/point_cloud/iteration_7000",
-            ],
-            "env": {
-                "PYTHONPATH": "."
-            }
-        },
-        {
-            "name": "debug diff_ply incremental",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "debug/diff_ply.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--src",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000",
-                "--dst",
                 "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
                 "--show",
             ],
@@ -268,7 +192,7 @@
             }
         },
         {
-            "name": "debug diff_ply_sh incremental",
+            "name": "debug diff_ply_sh",
             "type": "debugpy",
             "request": "launch",
             "program": "debug/diff_ply_sh.py",
