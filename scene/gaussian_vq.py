@@ -22,6 +22,19 @@ class Attribute(Enum):
 class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     method = None
 
+    def get_filename(self, attr: Attribute, log2_clusters: int, i=0):
+        data = getattr(self, "_" + str(attr))
+        if data.ndim <= 2:
+            name = f"{self.method}_{log2_clusters}_{attr}"
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                name = f"{self.method}_{log2_clusters}_{attr}"
+            else:
+                name = f"{self.method}_{log2_clusters}_{attr}_{i}"
+        else:
+            raise ValueError("Not supported")
+        return name
+
     def get_name(self, attr: Attribute, i=0):
         data = getattr(self, "_" + str(attr))
         if data.ndim <= 2:
@@ -52,15 +65,20 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
         pass
 
+    @abc.abstractmethod
+    def get_log2_clusters(self, attr: Attribute, i=0):
+        pass
+
     def save_codebook(self, dirpath, attr: Attribute, i=0):
         os.makedirs(dirpath, exist_ok=True)
-        path = os.path.join(dirpath, self.get_name(attr, i) + ".npz")
+        log2_clusters = self.get_log2_clusters(attr, i)
+        path = os.path.join(dirpath, self.get_filename(attr, log2_clusters, i) + ".npz")
         kmeans = getattr(self, self.get_name(attr, i))
         print(f"save codebook {path}.")
         np.savez(path, codebook=kmeans.cpu().numpy())
 
-    def load_codebook(self, dirpath, attr: Attribute, i=0):
-        path = os.path.join(dirpath, self.get_name(attr, i) + ".npz")
+    def load_codebook(self, dirpath, attr: Attribute, log2_clusters: int, i=0):
+        path = os.path.join(dirpath, self.get_filename(attr, log2_clusters, i) + ".npz")
         data = self.get_data(attr, i)
         print(f"load codebook {path}.")
         kmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
@@ -88,28 +106,32 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def dequantize(self, attr: Attribute, quant, i=0):
         pass
 
-    def load_and_test(self, dirpath, attr: Attribute, i=0):
-        self.load_codebook(dirpath, attr, i)
+    def load_and_test(self, dirpath, attr: Attribute, log2_clusters: int, i=0):
+        self.load_codebook(dirpath, attr, log2_clusters, i)
         self.dequantize(attr, self.quantize(attr, i))
 
     def parse_name(self, name):
-        find = re.findall(rf"{self.method}_([a-z_]+)_([0-9]+)", name)
+        find = re.findall(rf"{self.method}_([0-9]+)_([a-z_]+)_([0-9]+)", name)
         if len(find) <= 0:
-            find = re.findall(rf"{self.method}_([a-z_]+)", name)
-            (attr,) = find
+            find = re.findall(rf"{self.method}_([0-9]+)_([a-z_]+)", name)
+            attr, log2_clusters = find
             i = 0
         else:
-            attr, i = find[0]
+            attr, log2_clusters, i = find[0]
             i = int(i)
-        return attr, i
+        return attr, log2_clusters, i
 
-    def load_and_test_all(self, dirpath):
-        for entry in os.scandir(dirpath):
-            name, ext = os.path.splitext(entry.name)
-            if not ext == ".npz":
-                continue
-            attr, i = self.parse_name(name)
-            self.load_and_test(dirpath, attr, i)
+    def load_and_test_all(self, dirpath,
+                          log2_clusters_scaling,
+                          log2_clusters_rotation,
+                          log2_clusters_features_dc,
+                          log2_clusters_features_rest,
+                          log2_clusters_opacity):
+        self.load_and_test(dirpath, Attribute.scaling, log2_clusters_scaling)
+        self.load_and_test(dirpath, Attribute.rotation, log2_clusters_rotation)
+        self.load_and_test(dirpath, Attribute.features_dc, log2_clusters_features_dc)
+        self.load_and_test(dirpath, Attribute.features_rest, log2_clusters_features_rest)
+        self.load_and_test(dirpath, Attribute.opacity, log2_clusters_opacity)
 
 
 class KMeansGaussianModel(VQGaussianModel):
@@ -125,6 +147,10 @@ class KMeansGaussianModel(VQGaussianModel):
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
         setattr(self, self.get_name(attr, i), torch.FloatTensor(kmeans.cluster_centers_).to(data.device))
+        setattr(self, f"log2_clusters_{self.get_name(attr, i)}", log2_clusters)
+
+    def get_log2_clusters(self, attr: Attribute, i=0):
+        return getattr(self, f"log2_clusters_{self.get_name(attr, i)}")
 
     def quantize(self, attr: Attribute, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
@@ -149,7 +175,3 @@ class KMeansGaussianModel(VQGaussianModel):
         print(f"dequantized loss:       {loss}")
         print(f"dequantized mean:       {mean_dequantized}")
         print(f"dequantize  mean shift: {mean - mean_dequantized}")
-
-    def load_and_test(self, dirpath, attr: Attribute, i=0):
-        self.load_codebook(dirpath, attr, i)
-        self.dequantize(attr, self.quantize(attr, i))
