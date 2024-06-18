@@ -74,6 +74,42 @@
             ]
         },
         {
+            "name": "debug diff_ply",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/diff_ply.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000",
+                "--dst",
+                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
+                "--show",
+            ],
+            "env": {
+                "PYTHONPATH": "."
+            }
+        },
+        {
+            "name": "debug diff_ply_sh",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/diff_ply_sh.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000",
+                "--dst",
+                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
+                "--show",
+            ],
+            "env": {
+                "PYTHONPATH": "."
+            }
+        },
+        {
             "name": "render",
             "type": "debugpy",
             "request": "launch",
@@ -172,42 +208,6 @@
                 "--iteration",
                 "30000"
             ]
-        },
-        {
-            "name": "debug diff_ply",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "debug/diff_ply.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--src",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000",
-                "--dst",
-                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
-                "--show",
-            ],
-            "env": {
-                "PYTHONPATH": "."
-            }
-        },
-        {
-            "name": "debug diff_ply_sh",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "debug/diff_ply_sh.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--src",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000",
-                "--dst",
-                "output/coffee_martini/frame200-incremental/point_cloud/iteration_7000",
-                "--show",
-            ],
-            "env": {
-                "PYTHONPATH": "."
-            }
         },
         {
             "name": "debug show_distribution",
