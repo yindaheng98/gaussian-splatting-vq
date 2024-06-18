@@ -61,10 +61,12 @@ def quaternion_to_matrix(quaternions: torch.Tensor) -> torch.Tensor:
 
 
 def weighted_l2_loss(x, y, w):
-    return torch.sqrt((torch.flatten(x - y, start_dim=2).sum(-1) ** 2) * w + 1e-20).mean()
+    return torch.sqrt((torch.flatten(x - y, start_dim=2) ** 2).sum(-1) * w + 1e-20).mean()
 
 
 class GaussianModelIncremental(GaussianModel):
+    neighbors = 8
+    stretch_shrink_start = 3
     loss_weight_overall = 0.5
     loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0}
 
@@ -79,7 +81,7 @@ class GaussianModelIncremental(GaussianModel):
         _xyz_last = last_gaussian._xyz.detach()
 
         # pre-compute values
-        self.neighbor_indices, dists = simple_knn(_xyz_last)
+        self.neighbor_indices, dists = simple_knn(_xyz_last, n=self.neighbors)
         self.neighbor_weights = torch.exp(-dists)
         self.neighbor_relative_dists_last = dists
         self.neighbor_offsets_last = _xyz_last[self.neighbor_indices] - _xyz_last.unsqueeze(-2)
@@ -90,6 +92,27 @@ class GaussianModelIncremental(GaussianModel):
             self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_offsets_last.unsqueeze(-1)
         ).squeeze(-1)
         self._scaling_last = last_gaussian._scaling.detach()
+        # for shrink the scaling
+        shrink_start = self.stretch_shrink_start
+        # (-inf->+inf)->(shrink_start->shrink_start+1)
+        shrink_coeff = torch.clamp(self._scaling_last, min=shrink_start, max=shrink_start+1)
+        # (shrink_start->shrink_start+1)->(0->1)
+        shrink_coeff = shrink_coeff - shrink_start
+        # (0->1)->(1->0) by cosine
+        shrink_coeff = torch.cos(shrink_coeff * torch.pi / 2)
+        # reshape
+        self.shrink_coeff = shrink_coeff.unsqueeze(1).expand(-1, self.neighbors, -1)
+        self.shrink_index = self.shrink_coeff < (1.-1e-20)
+
+    def shrinked_weighted_l2_loss(self, relative_scaling, neighbor_relative_scaling, w):  # for shrink the scaling
+        # shrink this to prevent large value:
+        diff = relative_scaling - neighbor_relative_scaling
+        # if some neighbor is larger than this point,
+        # this point would be pulled to bigger,
+        should_shrink_idx = neighbor_relative_scaling > relative_scaling
+        # so its regularization value on this point should be shrink.
+        diff[should_shrink_idx & self.shrink_index] *= self.shrink_coeff[should_shrink_idx & self.shrink_index]
+        return torch.sqrt((diff ** 2).sum(-1) * w + 1e-20).mean()
 
     def load_ply(self, path):
         super().load_ply(path)
@@ -123,7 +146,7 @@ class GaussianModelIncremental(GaussianModel):
 
         relative_scaling = self._scaling - self._scaling_last
         neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
-        loss['stretch'] = weighted_l2_loss(
+        loss['stretch'] = self.shrinked_weighted_l2_loss(
             relative_scaling.unsqueeze(1),
             neighbor_relative_scaling,
             self.neighbor_weights)
