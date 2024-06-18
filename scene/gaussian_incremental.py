@@ -70,6 +70,12 @@ class GaussianModelIncremental(GaussianModel):
     loss_weight_overall = 0.5
     loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0}
 
+    def reg(self):
+        relative_scaling = self._scaling - self.stretch_shrink_start
+        relative_scaling[relative_scaling < 0] *= 0
+        stretch = torch.sqrt((relative_scaling ** 2).sum(-1) + 1e-20).mean()
+        return stretch
+
     def __init__(self, sh_degree: int):
         super().__init__(sh_degree=sh_degree)
         self.sh_degree = sh_degree

@@ -33,9 +33,7 @@ except ImportError:
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, load_ply, incremental, debug_from):
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
-    gaussians = GaussianModel(dataset.sh_degree)
-    if incremental:
-        gaussians = GaussianModelIncremental(dataset.sh_degree)
+    gaussians = GaussianModelIncremental(dataset.sh_degree)
     scene = Scene(dataset, gaussians, load_iteration=load_ply)
     gaussians.training_setup(opt)
     # if checkpoint:
@@ -80,6 +78,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, load_ply
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+        loss += gaussians.reg()
         if incremental:
             loss += gaussians.incremental_reg()
         loss.backward()
