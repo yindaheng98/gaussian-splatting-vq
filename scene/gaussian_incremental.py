@@ -101,8 +101,10 @@ class GaussianModelIncremental(GaussianModel):
         # (0->1)->(1->0) by cosine
         shrink_coeff = torch.cos(shrink_coeff * torch.pi / 2)
         # reshape
-        self.shrink_coeff = shrink_coeff.unsqueeze(1).expand(-1, self.neighbors, -1)
+        self.shrink_coeff = shrink_coeff
         self.shrink_index = self.shrink_coeff < (1.-1e-20)
+        self.shrink_coeff_expand = self.shrink_coeff.unsqueeze(1).expand(-1, self.neighbors, -1)
+        self.shrink_index_expand = self.shrink_index.unsqueeze(1).expand(-1, self.neighbors, -1)
 
     def shrinked_weighted_l2_loss(self, relative_scaling, neighbor_relative_scaling, w):  # for shrink the scaling
         # shrink this to prevent large value:
@@ -111,7 +113,7 @@ class GaussianModelIncremental(GaussianModel):
         # this point would be pulled to bigger,
         should_shrink_idx = neighbor_relative_scaling > relative_scaling
         # so its regularization value on this point should be shrink.
-        diff[should_shrink_idx & self.shrink_index] *= self.shrink_coeff[should_shrink_idx & self.shrink_index]
+        diff[should_shrink_idx & self.shrink_index_expand] *= self.shrink_coeff_expand[should_shrink_idx & self.shrink_index_expand]
         return torch.sqrt((diff ** 2).sum(-1) * w + 1e-20).mean()
 
     def load_ply(self, path):
