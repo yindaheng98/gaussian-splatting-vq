@@ -1,5 +1,6 @@
 import torch
-from tqdm import tqdm
+import tqdm
+import math
 from typing import List
 from .gaussian_kmeans import KMeansGaussianModel, Attribute
 
@@ -11,13 +12,19 @@ def distance(a: torch.Tensor, b: torch.Tensor):
     return dist
 
 
-def fill_distances(dists: torch.Tensor, datalist: List[torch.Tensor]):
-    n = len(datalist)
-    pbar = tqdm(desc="Calculate distances", total=dists.shape[0])
-    for i in range(n):
-        for j in range(i+1, n):
-            dists[(n-1+n-i)*i//2+j] = distance(datalist[i], datalist[j])
-            pbar.update(1)
+def distance_init(kmeans, n=8, batch=4096):
+    """Calculate the distance between the point and k neighbor points"""
+    pass
+    indxs = torch.zeros(kmeans.shape[0], n, dtype=torch.int32, device="cuda")
+    dists = torch.zeros(kmeans.shape[0], n, dtype=torch.float32, device="cuda")
+    progress_bar = tqdm.tqdm(range(kmeans.shape[0]), desc="Init KMeans center K nearest")
+    for i in range(math.ceil(kmeans.shape[0]/batch)):
+        dist = torch.norm(kmeans[i*batch:i*batch+batch, ...].unsqueeze(-2) - kmeans, p=2, dim=-1)
+        knn = dist.topk(n + 1, largest=False)
+        dists[i*batch:i*batch+batch, ...] = knn.values[:, 1:]
+        indxs[i*batch:i*batch+batch, ...] = knn.indices[:, 1:]
+        progress_bar.update(min(i*batch+batch, kmeans.shape[0])-i*batch)
+    return indxs, dists
 
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
@@ -28,6 +35,5 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         kmeans = getattr(self, super().get_name(attr, i))
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        dists = torch.zeros((kmeans.shape[0]-1)*kmeans.shape[0]//2, dtype=torch.float32, device='cpu')
-        fill_distances(dists, [data[quant == i, ...] for i in range(kmeans.shape[0])])
+        indxs, dists = distance_init(kmeans)
         raise NotImplementedError("build_codebook not implemented")
