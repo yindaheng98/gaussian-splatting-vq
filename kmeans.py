@@ -70,13 +70,14 @@ def quantize(_):
     target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq.ply")
     gaussians = KMeansGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.load_and_test_all(
+    gaussians.load_codebooks(
         os.path.join(args.save, target_reldir),
         args.log2_clusters_scaling or args.log2_clusters,
         args.log2_clusters_rotation or args.log2_clusters,
         args.log2_clusters_features_dc or args.log2_clusters,
         args.log2_clusters_features_rest or args.log2_clusters,
         args.log2_clusters_opacity or args.log2_clusters)
+    gaussians.test_all()
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
     gaussians.save_vq_ply(os.path.join(args.dst, target_vq_relpath))
 

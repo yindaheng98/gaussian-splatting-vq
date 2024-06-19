@@ -85,6 +85,18 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         kmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
         setattr(self, self.get_name(attr, i), kmeans)
 
+    def load_codebooks(self, dirpath,
+                       log2_clusters_scaling,
+                       log2_clusters_rotation,
+                       log2_clusters_features_dc,
+                       log2_clusters_features_rest,
+                       log2_clusters_opacity):
+        self.load_codebook(dirpath, log2_clusters_scaling, Attribute.scaling)
+        self.load_codebook(dirpath, log2_clusters_rotation, Attribute.rotation)
+        self.load_codebook(dirpath, log2_clusters_features_dc, Attribute.features_dc)
+        self.load_codebook(dirpath, log2_clusters_features_rest, Attribute.features_rest)
+        self.load_codebook(dirpath, log2_clusters_opacity, Attribute.opacity)
+
     @abc.abstractmethod
     def quantize(self, attr: Attribute, i=0):
         pass
@@ -130,21 +142,15 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def dequantize(self, attr: Attribute, quant, i=0):
         pass
 
-    def load_and_test(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
-        self.load_codebook(dirpath, log2_clusters, attr, i)
+    def test(self, attr: Attribute, i=0):
         self.dequantize(attr, self.quantize(attr, i))
 
-    def load_and_test_all(self, dirpath,
-                          log2_clusters_scaling,
-                          log2_clusters_rotation,
-                          log2_clusters_features_dc,
-                          log2_clusters_features_rest,
-                          log2_clusters_opacity):
-        self.load_and_test(dirpath, log2_clusters_scaling, Attribute.scaling)
-        self.load_and_test(dirpath, log2_clusters_rotation, Attribute.rotation)
-        self.load_and_test(dirpath, log2_clusters_features_dc, Attribute.features_dc)
-        self.load_and_test(dirpath, log2_clusters_features_rest, Attribute.features_rest)
-        self.load_and_test(dirpath, log2_clusters_opacity, Attribute.opacity)
+    def test_all(self):
+        self.test(Attribute.scaling)
+        self.test(Attribute.rotation)
+        self.test(Attribute.features_dc)
+        self.test(Attribute.features_rest)
+        self.test(Attribute.opacity)
 
 
 class KMeansGaussianModel(VQGaussianModel):
