@@ -17,7 +17,7 @@ build_all_attr() {
     build $1 $2 $3 $4 opacity
 }
 build_all_precision() {
-    for i in {6..10}; do
+    for i in {6..16}; do
         build_all_attr $1 $2 $3 $i
     done
 }
