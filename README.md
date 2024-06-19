@@ -127,7 +127,7 @@ Also build the draco for compression:
 ```shell
 mkdir build
 cd build
-cmake ../draco-3dgs
+cmake -DCMAKE_BUILD_TYPE=Release ../draco-3dgs
 make draco_encoder
 make draco_decoder
 ```
