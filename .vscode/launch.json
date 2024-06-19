@@ -179,6 +179,16 @@
                 "quantize",
                 "--dst",
                 "output/vq-coffee_martini/frame1",
+                "--log2-clusters",
+                "16",
+                "--log2-clusters-scaling",
+                "12",
+                "--log2-clusters-rotation",
+                "10",
+                "--log2-clusters-features_dc",
+                "6",
+                "--log2-clusters-opacity",
+                "6"
             ]
         },
         {
