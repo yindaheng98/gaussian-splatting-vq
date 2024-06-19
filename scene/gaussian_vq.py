@@ -145,12 +145,33 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def test(self, attr: Attribute, i=0):
         self.dequantize(attr, self.quantize(attr, i))
 
+    def load_vq_ply(self, path):
+        plydata = PlyData.read(path)
+
+        xyz = np.stack((np.asarray(plydata.elements[0]["x"]),
+                        np.asarray(plydata.elements[0]["y"]),
+                        np.asarray(plydata.elements[0]["z"])),  axis=1)
+        self._xyz.requires_grad_(False)
+        self._xyz[...] = torch.FloatTensor(xyz)
+        self._xyz.requires_grad_(True)
+
+        scaling = np.asarray(plydata.elements[0]["scale"])
+        rotation = np.asarray(plydata.elements[0]["rot"])
+        opacity = np.asarray(plydata.elements[0]["opacity"])
+        features_dc = np.asarray(plydata.elements[0]["f_dc"])
+        features_rest = np.asarray(plydata.elements[0]["f_rest"])
+        self.dequantize(Attribute.scaling, scaling)
+        self.dequantize(Attribute.rotation, rotation)
+        self.dequantize(Attribute.opacity, opacity)
+        self.dequantize(Attribute.features_dc, features_dc)
+        self.dequantize(Attribute.features_rest, features_rest)
+
     def test_all(self):
         self.test(Attribute.scaling)
         self.test(Attribute.rotation)
+        self.test(Attribute.opacity)
         self.test(Attribute.features_dc)
         self.test(Attribute.features_rest)
-        self.test(Attribute.opacity)
 
 
 class KMeansGaussianModel(VQGaussianModel):

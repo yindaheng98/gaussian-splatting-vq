@@ -82,6 +82,33 @@ def quantize(_):
     gaussians.save_vq_ply(os.path.join(args.dst, target_vq_relpath))
 
 
+@subcommand([
+    argument("--dst", type=str, required=True, help="The destination dir."),
+    argument("--log2-clusters", type=int, default=16, help="Qualtize by how many clusters."),
+    argument("--log2-clusters-scaling", type=int, default=0, help="Qualtize by how many clusters."),
+    argument("--log2-clusters-rotation", type=int, default=0, help="Qualtize by how many clusters."),
+    argument("--log2-clusters-features_dc", type=int, default=0, help="Qualtize by how many clusters."),
+    argument("--log2-clusters-features_rest", type=int, default=0, help="Qualtize by how many clusters."),
+    argument("--log2-clusters-opacity", type=int, default=0, help="Qualtize by how many clusters.")
+])
+def dequantize(_):
+    args = parser.parse_args()
+    target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
+    target_relpath = os.path.join(target_reldir, "point_cloud.ply")
+    target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq_ddrc.ply")
+    gaussians = KMeansGaussianModel(sh_degree=3)
+    gaussians.load_ply(os.path.join(args.src, target_relpath))
+    gaussians.load_codebooks(
+        os.path.join(args.save, target_reldir),
+        args.log2_clusters_scaling or args.log2_clusters,
+        args.log2_clusters_rotation or args.log2_clusters,
+        args.log2_clusters_features_dc or args.log2_clusters,
+        args.log2_clusters_features_rest or args.log2_clusters,
+        args.log2_clusters_opacity or args.log2_clusters)
+    gaussians.load_vq_ply(os.path.join(args.dst, target_vq_relpath))
+    gaussians.save_ply(os.path.join(args.dst, target_relpath))
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     if args.subcommand is None:

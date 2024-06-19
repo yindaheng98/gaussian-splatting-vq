@@ -194,6 +194,37 @@
             ]
         },
         {
+            "name": "kmeans dequantize",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "kmeans.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1",
+                "--save",
+                "output/vq-coffee_martini/frame1",
+                "--iteration",
+                "30000",
+                "dequantize",
+                "--dst",
+                "output/vq-coffee_martini/frame1",
+                "--log2-clusters",
+                "16",
+                "--log2-clusters-scaling",
+                "12",
+                "--log2-clusters-rotation",
+                "10",
+                "--log2-clusters-features_dc",
+                "6",
+                "--log2-clusters-features_rest",
+                "6",
+                "--log2-clusters-opacity",
+                "6"
+            ]
+        },
+        {
             "name": "ply23dgs",
             "type": "debugpy",
             "request": "launch",
@@ -202,9 +233,9 @@
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
+                "output/coffee_martini/frame1/point_cloud/iteration_30001",
                 "--dst",
-                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
+                "output/coffee_martini/frame1/point_cloud/iteration_30001",
             ]
         },
         {
