@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 import os
-import re
 import abc
 from sklearn.cluster import MiniBatchKMeans as KMeans
 from plyfile import PlyData, PlyElement
@@ -221,14 +220,3 @@ class KMeansGaussianModel(VQGaussianModel):
         print(f"dequantized rel loss:   {loss / mean_dequantized}")
         print(f"dequantized mean:       {mean_dequantized}")
         print(f"dequantize  mean shift: {mean - mean_dequantized}")
-
-
-class LayeredKMeansGaussianModel(KMeansGaussianModel):
-    dirpath = ''
-
-    def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
-        super().load_codebook(self.dirpath, log2_clusters, attr, i)
-        kmeans = getattr(self, super().get_name(attr, i))
-        data = self.get_data(attr, i).detach()
-        quant = super().quantize(attr, i)
-        raise NotImplementedError("build_codebook not implemented")

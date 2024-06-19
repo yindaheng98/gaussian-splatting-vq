@@ -1,6 +1,7 @@
 import os
 import argparse
-from scene.gaussian_vq import KMeansGaussianModel, Attribute, LayeredKMeansGaussianModel
+from scene.gaussian_kmeans import KMeansGaussianModel, Attribute
+from scene.gaussian_lvq import LayeredKMeansGaussianModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source dir.")
