@@ -67,10 +67,6 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def sort_codebook(self, attr: Attribute, i=0):
-        pass
-
-    @abc.abstractmethod
     def get_log2_clusters(self, attr: Attribute, i=0):
         pass
 
@@ -198,10 +194,6 @@ class KMeansGaussianModel(VQGaussianModel):
         setattr(self, self.get_name(attr, i), torch.FloatTensor(kmeans.cluster_centers_).to(data.device))
         setattr(self, f"log2_clusters_{self.get_name(attr, i)}", log2_clusters)
 
-    def sort_codebook(self, attr: Attribute, i=0):
-        kmeans = getattr(self, self.get_name(attr, i))
-        raise NotImplementedError("sort_codebook not implemented!")
-
     def get_log2_clusters(self, attr: Attribute, i=0):
         return getattr(self, f"log2_clusters_{self.get_name(attr, i)}")
 
@@ -229,3 +221,14 @@ class KMeansGaussianModel(VQGaussianModel):
         print(f"dequantized rel loss:   {loss / mean_dequantized}")
         print(f"dequantized mean:       {mean_dequantized}")
         print(f"dequantize  mean shift: {mean - mean_dequantized}")
+
+
+class LayeredKMeansGaussianModel(KMeansGaussianModel):
+    dirpath = ''
+
+    def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
+        super().load_codebook(self.dirpath, log2_clusters, attr, i)
+        kmeans = getattr(self, super().get_name(attr, i))
+        data = self.get_data(attr, i).detach()
+        quant = super().quantize(attr, i)
+        raise NotImplementedError("build_codebook not implemented")

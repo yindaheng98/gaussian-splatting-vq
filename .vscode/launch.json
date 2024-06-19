@@ -163,7 +163,7 @@
             ]
         },
         {
-            "name": "kmeans sort",
+            "name": "kmeans layerize",
             "type": "debugpy",
             "request": "launch",
             "program": "kmeans.py",
@@ -176,7 +176,7 @@
                 "output/vq-coffee_martini/frame1",
                 "--iteration",
                 "30000",
-                "sort",
+                "layerize",
                 "--log2-clusters",
                 "16",
                 "--attribute",

@@ -1,6 +1,6 @@
 import os
 import argparse
-from scene.gaussian_vq import KMeansGaussianModel, Attribute
+from scene.gaussian_vq import KMeansGaussianModel, Attribute, LayeredKMeansGaussianModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source dir.")
@@ -59,15 +59,14 @@ def build(args):
     argument("--attribute", type=Attribute, choices=list(Attribute), help="Which attribute do you want to quantize."),
     argument("--index", type=int, default=0),
 ])
-def sort(args):
+def layerize(args):
     args = parser.parse_args()
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
-    gaussians = KMeansGaussianModel(sh_degree=3)
+    gaussians = LayeredKMeansGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.load_codebook(os.path.join(args.save, target_reldir), args.log2_clusters, args.attribute, args.index)
-    gaussians.sort_codebook(args.attribute, args.index)
-    gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
+    gaussians.dirpath = os.path.join(args.save, target_reldir)
+    gaussians.build_codebook(args.log2_clusters, args.attribute, args.index)
 
 
 @subcommand([
