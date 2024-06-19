@@ -128,6 +128,8 @@ Also build the draco for compression:
 mkdir build
 cd build
 cmake ../draco-3dgs
+make draco_encoder
+make draco_decoder
 ```
 
 #### Train the videos
