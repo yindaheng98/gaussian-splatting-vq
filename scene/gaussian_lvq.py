@@ -1,18 +1,10 @@
 import torch
 import tqdm
 import math
-from typing import List
 from .gaussian_kmeans import KMeansGaussianModel, Attribute
 
 
-def distance(a: torch.Tensor, b: torch.Tensor):
-    ab = torch.cat([a, b], dim=0)
-    center = ab.mean(dim=0, keepdim=True)
-    dist = torch.norm(ab-center, dim=1, p=2).mean()
-    return dist
-
-
-def knn_init(kmeans, n=8, batch=4096):
+def knn(kmeans, n=8, batch=4096):
     """Calculate the distance between the point and k neighbor points"""
     pass
     indxs = torch.zeros(kmeans.shape[0], n, dtype=torch.int32, device="cuda")
@@ -27,10 +19,17 @@ def knn_init(kmeans, n=8, batch=4096):
     return indxs, dists
 
 
+def distance(a: torch.Tensor, b: torch.Tensor):
+    ab = torch.cat([a, b], dim=0)
+    center = ab.mean(dim=0, keepdim=True)
+    dist = torch.norm(ab-center, dim=1, p=2).mean()
+    return dist
+
+
 def distance_init(kmeans, neighbors_idx, data, quant):
     dists = torch.zeros(neighbors_idx.shape, dtype=torch.float32, device=data.device)
     for center_idx in tqdm.tqdm(range(kmeans.shape[0]), desc="Init KMeans center distance"):
-        center_data = data[quant == center_idx,...]
+        center_data = data[quant == center_idx, ...]
         for i, neighbor_idx in enumerate(neighbors_idx[center_idx, ...]):
             neighbor_data = data[quant == neighbor_idx]
             dists[center_idx, i] = distance(center_data, neighbor_data)
@@ -45,6 +44,6 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         kmeans = getattr(self, super().get_name(attr, i))
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        indxs, kdists = knn_init(kmeans)
+        indxs, kdists = knn(kmeans)
         dists = distance_init(kmeans, indxs, data, quant)
         raise NotImplementedError("build_codebook not implemented")
