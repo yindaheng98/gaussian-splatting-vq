@@ -163,6 +163,31 @@
             ]
         },
         {
+            "name": "kmeans sort",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "kmeans.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--src",
+                "output/coffee_martini/frame1",
+                "--save",
+                "output/vq-coffee_martini/frame1",
+                "--iteration",
+                "30000",
+                "sort",
+                "--log2-clusters",
+                "16",
+                "--attribute",
+                "scaling",
+                // "rotation",
+                // "features_dc",
+                // "features_rest",
+                // "opacity",
+            ]
+        },
+        {
             "name": "kmeans quantize",
             "type": "debugpy",
             "request": "launch",

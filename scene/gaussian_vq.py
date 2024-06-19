@@ -67,6 +67,10 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def sort_codebook(self, attr: Attribute, i=0):
+        pass
+
+    @abc.abstractmethod
     def get_log2_clusters(self, attr: Attribute, i=0):
         pass
 
@@ -114,10 +118,6 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         else:
             raise ValueError("Not supported")
         data.requires_grad_(True)
-
-    def construct_list_of_vq_attributes(self):
-        l = ['x', 'y', 'z', 'nx', 'ny', 'nz', "scale", "rot", "opacity", "f_dc", "f_rest"]
-        return l
 
     def save_vq_ply(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -197,6 +197,10 @@ class KMeansGaussianModel(VQGaussianModel):
         kmeans.fit(data.cpu())
         setattr(self, self.get_name(attr, i), torch.FloatTensor(kmeans.cluster_centers_).to(data.device))
         setattr(self, f"log2_clusters_{self.get_name(attr, i)}", log2_clusters)
+
+    def sort_codebook(self, attr: Attribute, i=0):
+        kmeans = getattr(self, self.get_name(attr, i))
+        raise NotImplementedError("sort_codebook not implemented!")
 
     def get_log2_clusters(self, attr: Attribute, i=0):
         return getattr(self, f"log2_clusters_{self.get_name(attr, i)}")

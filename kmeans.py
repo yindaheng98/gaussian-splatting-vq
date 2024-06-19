@@ -55,6 +55,22 @@ def build(args):
 
 
 @subcommand([
+    argument("--log2-clusters", type=int, required=True, help="Qualtize to how many clusters."),
+    argument("--attribute", type=Attribute, choices=list(Attribute), help="Which attribute do you want to quantize."),
+    argument("--index", type=int, default=0),
+])
+def sort(args):
+    args = parser.parse_args()
+    target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
+    target_relpath = os.path.join(target_reldir, "point_cloud.ply")
+    gaussians = KMeansGaussianModel(sh_degree=3)
+    gaussians.load_ply(os.path.join(args.src, target_relpath))
+    gaussians.load_codebook(os.path.join(args.save, target_reldir), args.log2_clusters, args.attribute, args.index)
+    gaussians.sort_codebook(args.attribute, args.index)
+    gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
+
+
+@subcommand([
     argument("--dst", type=str, required=True, help="The destination dir."),
     argument("--log2-clusters", type=int, default=16, help="Qualtize by how many clusters."),
     argument("--log2-clusters-scaling", type=int, default=0, help="Qualtize by how many clusters."),
