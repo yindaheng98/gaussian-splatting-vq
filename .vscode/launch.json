@@ -187,6 +187,8 @@
                 "10",
                 "--log2-clusters-features_dc",
                 "6",
+                "--log2-clusters-features_rest",
+                "6",
                 "--log2-clusters-opacity",
                 "6"
             ]
