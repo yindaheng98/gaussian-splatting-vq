@@ -22,7 +22,7 @@ class Attribute(Enum):
 class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     method = None
 
-    def get_filename(self, attr: Attribute, log2_clusters: int, i=0):
+    def get_filename(self, log2_clusters: int, attr: Attribute, i=0):
         data = getattr(self, "_" + str(attr))
         if data.ndim <= 2:
             name = f"{self.method}_{log2_clusters}_{attr}"
@@ -62,7 +62,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         return kdata
 
     @abc.abstractmethod
-    def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
+    def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
         pass
 
     @abc.abstractmethod
@@ -72,13 +72,13 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def save_codebook(self, dirpath, attr: Attribute, i=0):
         os.makedirs(dirpath, exist_ok=True)
         log2_clusters = self.get_log2_clusters(attr, i)
-        path = os.path.join(dirpath, self.get_filename(attr, log2_clusters, i) + ".npz")
+        path = os.path.join(dirpath, self.get_filename(log2_clusters, attr, i) + ".npz")
         kmeans = getattr(self, self.get_name(attr, i))
         print(f"save codebook {path}.")
         np.savez(path, codebook=kmeans.cpu().numpy())
 
-    def load_codebook(self, dirpath, attr: Attribute, log2_clusters: int, i=0):
-        path = os.path.join(dirpath, self.get_filename(attr, log2_clusters, i) + ".npz")
+    def load_codebook(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
+        path = os.path.join(dirpath, self.get_filename(log2_clusters, attr, i) + ".npz")
         data = self.get_data(attr, i)
         print(f"load codebook {path}.")
         kmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
@@ -106,20 +106,9 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def dequantize(self, attr: Attribute, quant, i=0):
         pass
 
-    def load_and_test(self, dirpath, attr: Attribute, log2_clusters: int, i=0):
-        self.load_codebook(dirpath, attr, log2_clusters, i)
+    def load_and_test(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
+        self.load_codebook(dirpath, log2_clusters, attr, i)
         self.dequantize(attr, self.quantize(attr, i))
-
-    def parse_name(self, name):
-        find = re.findall(rf"{self.method}_([0-9]+)_([a-z_]+)_([0-9]+)", name)
-        if len(find) <= 0:
-            find = re.findall(rf"{self.method}_([0-9]+)_([a-z_]+)", name)
-            attr, log2_clusters = find
-            i = 0
-        else:
-            attr, log2_clusters, i = find[0]
-            i = int(i)
-        return attr, log2_clusters, i
 
     def load_and_test_all(self, dirpath,
                           log2_clusters_scaling,
@@ -127,11 +116,11 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
                           log2_clusters_features_dc,
                           log2_clusters_features_rest,
                           log2_clusters_opacity):
-        self.load_and_test(dirpath, Attribute.scaling, log2_clusters_scaling)
-        self.load_and_test(dirpath, Attribute.rotation, log2_clusters_rotation)
-        self.load_and_test(dirpath, Attribute.features_dc, log2_clusters_features_dc)
-        self.load_and_test(dirpath, Attribute.features_rest, log2_clusters_features_rest)
-        self.load_and_test(dirpath, Attribute.opacity, log2_clusters_opacity)
+        self.load_and_test(dirpath, log2_clusters_scaling, Attribute.scaling)
+        self.load_and_test(dirpath, log2_clusters_rotation, Attribute.rotation)
+        self.load_and_test(dirpath, log2_clusters_features_dc, Attribute.features_dc)
+        self.load_and_test(dirpath, log2_clusters_features_rest, Attribute.features_rest)
+        self.load_and_test(dirpath, log2_clusters_opacity, Attribute.opacity)
 
 
 class KMeansGaussianModel(VQGaussianModel):
@@ -140,7 +129,7 @@ class KMeansGaussianModel(VQGaussianModel):
     @staticmethod
     def kmeans_batch(log2_clusters): return 2**log2_clusters
 
-    def build_codebook(self, attr: Attribute, log2_clusters: int, i=0):
+    def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
         kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
                         n_init="auto", verbose=1, batch_size=self.kmeans_batch(log2_clusters))
         data = self.get_data(attr, i).detach()

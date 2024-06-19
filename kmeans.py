@@ -50,7 +50,7 @@ def build(args):
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     gaussians = KMeansGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.build_codebook(args.attribute, args.log2_clusters, args.index)
+    gaussians.build_codebook(args.log2_clusters, args.attribute, args.index)
     gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
 
 
