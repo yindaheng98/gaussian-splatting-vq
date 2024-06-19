@@ -1,7 +1,8 @@
 # !/bin/bash
 build() {
+    INDEX=$([ -n "$6" ] && echo $6 || echo 0)
     PERFIX="output/vq-$1/frame$2/point_cloud/iteration_$3/kmeans_${4}_$5"
-    if [ ! -e "$PERFIX.npz" ] && [ ! -e "${PERFIX}_$6.npz" ]; then
+    if [ ! -e "$PERFIX.npz" ] && [ ! -e "${PERFIX}_$INDEX.npz" ]; then
     # echo \
     python kmeans.py \
         --src output/$1/frame$2 \
@@ -9,7 +10,8 @@ build() {
         --iteration $3 \
         build \
         --log2-clusters $4 \
-        --attribute $5
+        --attribute $5 \
+        --index $INDEX
     fi
 }
 build_all_attr() {
