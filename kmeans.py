@@ -67,6 +67,7 @@ def quantize(_):
     args = parser.parse_args()
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
+    target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq.ply")
     gaussians = KMeansGaussianModel(sh_degree=3)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.load_and_test_all(
@@ -77,6 +78,7 @@ def quantize(_):
         args.log2_clusters_features_rest or args.log2_clusters,
         args.log2_clusters_opacity or args.log2_clusters)
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
+    gaussians.save_vq_ply(os.path.join(args.dst, target_vq_relpath))
 
 
 if __name__ == "__main__":

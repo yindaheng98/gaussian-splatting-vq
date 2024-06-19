@@ -4,6 +4,7 @@ import os
 import re
 import abc
 from sklearn.cluster import MiniBatchKMeans as KMeans
+from plyfile import PlyData, PlyElement
 from .gaussian_model import GaussianModel
 from enum import Enum
 
@@ -101,6 +102,29 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         else:
             raise ValueError("Not supported")
         data.requires_grad_(True)
+
+    def construct_list_of_vq_attributes(self):
+        l = ['x', 'y', 'z', 'nx', 'ny', 'nz', "scale", "rot", "opacity", "f_dc", "f_rest"]
+        return l
+
+    def save_vq_ply(self, path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        xyz = self._xyz.detach().cpu().numpy()
+        normals = np.zeros_like(xyz)
+        f_dc = self.quantize(Attribute.features_dc).detach().unsqueeze(-1).cpu().numpy()
+        f_rest = self.quantize(Attribute.features_rest).detach().unsqueeze(-1).cpu().numpy()
+        opacities = self.quantize(Attribute.opacity).detach().unsqueeze(-1).cpu().numpy()
+        scale = self.quantize(Attribute.scaling).detach().unsqueeze(-1).cpu().numpy()
+        rotation = self.quantize(Attribute.rotation).detach().unsqueeze(-1).cpu().numpy()
+
+        dtype_full = [(attribute, 'i4') for attribute in self.construct_list_of_vq_attributes()]
+
+        elements = np.empty(xyz.shape[0], dtype=dtype_full)
+        attributes = np.concatenate((xyz, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
+        elements[:] = list(map(tuple, attributes))
+        el = PlyElement.describe(elements, 'vertex')
+        PlyData([el]).write(path)
 
     @abc.abstractmethod
     def dequantize(self, attr: Attribute, quant, i=0):
