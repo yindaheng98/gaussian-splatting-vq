@@ -130,7 +130,14 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         scale = self.quantize(Attribute.scaling).detach().unsqueeze(-1).cpu().numpy()
         rotation = self.quantize(Attribute.rotation).detach().unsqueeze(-1).cpu().numpy()
 
-        dtype_full = [(attribute, 'i4') for attribute in self.construct_list_of_vq_attributes()]
+        dtype_full = [
+            ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
+            ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
+            ('scale', 'i4'),
+            ('rot', 'i4'),
+            ('opacity', 'i4'),
+            ('f_dc', 'i4'),
+            ('f_rest', 'i4')]
 
         elements = np.empty(xyz.shape[0], dtype=dtype_full)
         attributes = np.concatenate((xyz, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
