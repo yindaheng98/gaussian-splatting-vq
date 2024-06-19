@@ -122,6 +122,14 @@ conda env create --file environment.yml --prefix <Drive>/<env_path>/gaussian_spl
 conda activate <Drive>/<env_path>/gaussian_splatting
 ```
 
+Also build the draco for compression:
+
+```shell
+mkdir build
+cd build
+cmake ../draco-3dgs
+```
+
 #### Train the videos
 
 ```sh
