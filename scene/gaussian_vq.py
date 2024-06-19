@@ -164,5 +164,6 @@ class KMeansGaussianModel(VQGaussianModel):
         self.set_data(attr, dequantized, i)
         print(f"dequantized by {self.get_name(attr, i)}.")
         print(f"dequantized loss:       {loss}")
+        print(f"dequantized rel loss:   {loss / mean_dequantized}")
         print(f"dequantized mean:       {mean_dequantized}")
         print(f"dequantize  mean shift: {mean - mean_dequantized}")
