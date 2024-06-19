@@ -126,13 +126,15 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
     quant_batch = 4096
+
     @staticmethod
-    def kmeans_batch(log2_clusters): return 2**log2_clusters
+    def kmeans_batch(log2_clusters, datasize):
+        return datasize // 10
 
     def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
-        kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
-                        n_init="auto", verbose=1, batch_size=self.kmeans_batch(log2_clusters))
         data = self.get_data(attr, i).detach()
+        kmeans = KMeans(n_clusters=2**log2_clusters, init='random', random_state=0,
+                        n_init="auto", verbose=1, batch_size=self.kmeans_batch(log2_clusters, data.shape[0]))
         print(f"{log2_clusters} bit Kmeans {self.get_name(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
         setattr(self, self.get_name(attr, i), torch.FloatTensor(kmeans.cluster_centers_).to(data.device))
