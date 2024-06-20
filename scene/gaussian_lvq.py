@@ -67,6 +67,8 @@ class LayeredKMeans:
         clusters[min_idx] = clusters[min_neighbors_idx] = None
         # add new center
         tmp_kmeans = torch.cat([tmp_kmeans, new_center], dim=0)
+        self.layerized_kmeans = torch.cat([self.layerized_kmeans, new_center], dim=0)  # save result
+        self.tree.append((min_idx, min_neighbors_idx))
         # delete old center
         tmp_kmeans[min_idx, ...] = torch.inf
         tmp_kmeans[min_neighbors_idx, ...] = torch.inf
@@ -90,7 +92,7 @@ class LayeredKMeans:
         tmp_neighbors_idx[should_update_idx, ...] = new_knn.indices[:, 1:].type(torch.int32)
         # update neighbors distance
         dists = torch.cat([dists, torch.zeros_like(dists[0:1, ...])], dim=0)
-        for center_idx in should_update_idx:
+        for center_idx in tqdm.tqdm(should_update_idx, desc="Updating distance", position=1, leave=False):
             center_data = clusters[center_idx]
             for i, neighbor_idx in enumerate(tmp_neighbors_idx[center_idx, ...]):
                 neighbor_data = clusters[neighbor_idx]
@@ -104,13 +106,14 @@ class LayeredKMeans:
 
     def fit(self, data, quant):
         clusters = self.clusters_init(data, quant)
-        dists = self.distance_init(clusters)
+        dists = self.distance_init(clusters).to(data.device)
         self.layerized_kmeans = self.kmeans.clone()
+        self.tree = []
         tmp_kmeans = self.kmeans.clone()
         tmp_neighbors_idx = self.neighbors_idx.clone()
-        for _ in tqdm.tqdm(range(len(clusters)), desc="Merging clusters"):
+        for _ in tqdm.tqdm(range(len(clusters)), desc="Merging clusters", position=0, leave=False):
             clusters, dists, tmp_kmeans, tmp_neighbors_idx = self.merge(clusters, dists, tmp_kmeans, tmp_neighbors_idx)
-        raise NotImplementedError("fit not implemented")
+        pass
 
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
