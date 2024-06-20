@@ -1,11 +1,38 @@
+import os
 import torch
+import numpy as np
 from sklearn.cluster import MiniBatchKMeans as KMeans
 from .gaussian_vq import VQGaussianModel, Attribute
 
 
 class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
-    quant_batch = 4096
+
+    def get_filename(self, log2_clusters: int, attr: Attribute, i=0):
+        data = getattr(self, "_" + str(attr))
+        if data.ndim <= 2:
+            name = f"{self.method}_{log2_clusters}_{attr}"
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                name = f"{self.method}_{log2_clusters}_{attr}"
+            else:
+                name = f"{self.method}_{log2_clusters}_{attr}_{i}"
+        else:
+            raise ValueError("Not supported")
+        return name
+
+    def get_name(self, attr: Attribute, i=0):
+        data = getattr(self, "_" + str(attr))
+        if data.ndim <= 2:
+            name = f"{self.method}_{attr}"
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                name = f"{self.method}_{attr}"
+            else:
+                name = f"{self.method}_{attr}_{i}"
+        else:
+            raise ValueError("Not supported")
+        return name
 
     @staticmethod
     def kmeans_batch(log2_clusters, datasize):
@@ -22,6 +49,23 @@ class KMeansGaussianModel(VQGaussianModel):
 
     def get_log2_clusters(self, attr: Attribute, i=0):
         return getattr(self, f"log2_clusters_{self.get_name(attr, i)}")
+
+    def save_codebook(self, dirpath, attr: Attribute, i=0):
+        os.makedirs(dirpath, exist_ok=True)
+        log2_clusters = self.get_log2_clusters(attr, i)
+        path = os.path.join(dirpath, self.get_filename(log2_clusters, attr, i) + ".npz")
+        kmeans = getattr(self, self.get_name(attr, i))
+        print(f"save codebook {path}.")
+        np.savez(path, codebook=kmeans.cpu().numpy())
+
+    def load_codebook(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
+        path = os.path.join(dirpath, self.get_filename(log2_clusters, attr, i) + ".npz")
+        data = self.get_data(attr, i)
+        print(f"load codebook {path}.")
+        kmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
+        setattr(self, self.get_name(attr, i), kmeans)
+
+    quant_batch = 4096
 
     def quantize(self, attr: Attribute, i=0):
         kmeans = getattr(self, self.get_name(attr, i))
