@@ -70,16 +70,37 @@ class LayeredKMeans:
         # delete old center
         tmp_kmeans[min_idx, ...] = torch.inf
         tmp_kmeans[min_neighbors_idx, ...] = torch.inf
-        # update neighbors
-        should_update = torch.logical_or(
+        # which center should be updated
+        should_update_idx = torch.logical_or(
             tmp_neighbors_idx == min_idx,
             tmp_neighbors_idx == min_neighbors_idx
         ).any(dim=1).nonzero()[..., 0]
-        should_update = should_update[torch.logical_and(should_update != min_idx, should_update != min_neighbors_idx)]
-        new_dist = torch.norm(tmp_kmeans[should_update, ...].unsqueeze(-2) - tmp_kmeans, p=2, dim=-1)
-        new_knn = new_dist.topk(dists.shape[1] + 1, largest=False)
-        tmp_neighbors_idx[should_update, ...] = new_knn.indices[:, 1:].type(torch.int32)
-        return tmp_kmeans, tmp_neighbors_idx
+        should_update_idx = should_update_idx[torch.logical_and(
+            should_update_idx != min_idx, should_update_idx != min_neighbors_idx
+        )]
+        should_update_idx = torch.cat([
+            should_update_idx,
+            torch.tensor([new_center_idx], dtype=should_update_idx.dtype, device=should_update_idx.device)
+        ], dim=0)
+        # compute new neighbors idx
+        new_kdist = torch.norm(tmp_kmeans[should_update_idx, ...].unsqueeze(-2) - tmp_kmeans, p=2, dim=-1)
+        new_knn = new_kdist.topk(dists.shape[1] + 1, largest=False)
+        # update neighbors idx
+        tmp_neighbors_idx = torch.cat([tmp_neighbors_idx, torch.zeros_like(tmp_neighbors_idx[0:1, ...])], dim=0)
+        tmp_neighbors_idx[should_update_idx, ...] = new_knn.indices[:, 1:].type(torch.int32)
+        # update neighbors distance
+        dists = torch.cat([dists, torch.zeros_like(dists[0:1, ...])], dim=0)
+        for center_idx in should_update_idx:
+            center_data = clusters[center_idx]
+            for i, neighbor_idx in enumerate(tmp_neighbors_idx[center_idx, ...]):
+                neighbor_data = clusters[neighbor_idx]
+                if center_data is not None and neighbor_data is not None:
+                    dists[center_idx, i] = vdistance(center_data, neighbor_data)
+                else:
+                    dists[center_idx, i] = torch.inf
+        dists[min_idx, ...] = torch.inf
+        dists[min_neighbors_idx, ...] = torch.inf
+        return clusters, dists, tmp_kmeans, tmp_neighbors_idx
 
     def fit(self, data, quant):
         clusters = self.clusters_init(data, quant)
@@ -87,7 +108,8 @@ class LayeredKMeans:
         self.layerized_kmeans = self.kmeans.clone()
         tmp_kmeans = self.kmeans.clone()
         tmp_neighbors_idx = self.neighbors_idx.clone()
-        tmp_kmeans, tmp_neighbors_idx = self.merge(clusters, dists, tmp_kmeans, tmp_neighbors_idx)
+        for _ in tqdm.tqdm(range(len(clusters)), desc="Merging clusters"):
+            clusters, dists, tmp_kmeans, tmp_neighbors_idx = self.merge(clusters, dists, tmp_kmeans, tmp_neighbors_idx)
         raise NotImplementedError("fit not implemented")
 
 
