@@ -18,36 +18,66 @@ def knn_init(kmeans, n=8, batch=4096):
     return neighbors_idx, dists
 
 
-def marged_center(a: torch.Tensor, b: torch.Tensor):
+def marged_cluster(a: torch.Tensor, b: torch.Tensor):
     ab = torch.cat([a, b], dim=0)
     center = ab.mean(dim=0, keepdim=True)
-    return center
-
-
-def clusters_init(kmeans, data, quant):
-    """Split the data into clusters"""
-    clusters = [None]*kmeans.shape[0]
-    for i in tqdm.tqdm(range(kmeans.shape[0]), desc="Init KMeans clusters"):
-        clusters[i] = data[quant == i, ...]
-    return clusters
+    return ab, center
 
 
 def vdistance(a: torch.Tensor, b: torch.Tensor):
     """Virtual distance for quant tree. Just the avg distance from center to points after merge."""
-    center = marged_center(a, b)
+    _, center = marged_cluster(a, b)
     dist = torch.norm(torch.cat([a, b], dim=0)-center, dim=1, p=2).mean()
     return dist
 
 
-def distance_init(kmeans, neighbors_idx, clusters):
-    """Calculate the virtual distance between the point and their k neighbor points"""
-    dists = torch.zeros(neighbors_idx.shape, dtype=torch.float32)
-    for center_idx in tqdm.tqdm(range(kmeans.shape[0]), desc="Init KMeans center distance"):
-        center_data = clusters[center_idx]
-        for i, neighbor_idx in enumerate(neighbors_idx[center_idx, ...]):
-            neighbor_data = clusters[neighbor_idx]
-            dists[center_idx, i] = vdistance(center_data, neighbor_data)
-    return dists
+class LayeredKMeans:
+    def __init__(self, kmeans):
+        self.kmeans = kmeans
+        self.neighbors_idx, self.kdists = knn_init(self.kmeans)
+
+    def clusters_init(self, data, quant):
+        """Split the data into clusters"""
+        clusters = [None]*self.kmeans.shape[0]
+        for i in tqdm.tqdm(range(self.kmeans.shape[0]), desc="Init KMeans clusters"):
+            clusters[i] = data[quant == i, ...]
+        return clusters
+
+    def distance_init(self, clusters):
+        """Calculate the virtual distance between the point and their k neighbor points"""
+        dists = torch.zeros(self.neighbors_idx.shape, dtype=torch.float32)
+        for center_idx in tqdm.tqdm(range(self.kmeans.shape[0]), desc="Init KMeans center distance"):
+            center_data = clusters[center_idx]
+            for i, neighbor_idx in enumerate(self.neighbors_idx[center_idx, ...]):
+                neighbor_data = clusters[neighbor_idx]
+                dists[center_idx, i] = vdistance(center_data, neighbor_data)
+        return dists
+
+    def merge(self, clusters, dists, tmp_kmeans):
+        """Merge the clusters and dists, and expand self.layerized_kmeans"""
+        min_pos = (dists == dists.min()).nonzero()[0]
+        min_idx, min_neighbors_idx = min_pos[0], self.neighbors_idx[*min_pos]
+        # concat to get new cluster and center
+        new_cluster, new_center = marged_cluster(clusters[min_idx], clusters[min_neighbors_idx])
+        # add new cluster
+        new_center_idx = len(clusters)
+        clusters.append(None)
+        clusters[new_center_idx] = new_cluster
+        # delete old clusters
+        clusters[min_idx] = clusters[min_neighbors_idx] = None
+        # add new center
+        tmp_kmeans = torch.cat([tmp_kmeans, new_center], dim=0)
+        # TODO: delete old center
+        print(min_idx, min_neighbors_idx)
+        return tmp_kmeans
+
+    def fit(self, data, quant):
+        clusters = self.clusters_init(data, quant)
+        dists = self.distance_init(clusters)
+        self.layerized_kmeans = self.kmeans.clone()
+        tmp_kmeans = self.kmeans.clone()
+        tmp_kmeans = self.merge(clusters, dists, tmp_kmeans)
+        raise NotImplementedError("fit not implemented")
 
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
@@ -57,11 +87,9 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         super().load_codebook(self.dirpath, log2_clusters, attr, i)
 
         kmeans = getattr(self, super().get_name(attr, i))
-        neighbors_idx, kdists = knn_init(kmeans)
-
+        lkmeans = LayeredKMeans(kmeans)
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        clusters = clusters_init(kmeans, data, quant)
-
-        dists = distance_init(kmeans, neighbors_idx, clusters)
+        lkmeans.fit(data, quant)
+        # TODO: save LayeredKMeans
         raise NotImplementedError("build_codebook not implemented")
