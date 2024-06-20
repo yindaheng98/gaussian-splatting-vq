@@ -57,11 +57,20 @@ render() {
         --iteration $3 \
         $4
 }
-render coffee_martini 1 30000 "--skip_train --render_train_interp"
+# render coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_vq() {
     python render.py \
         -m output/vq-$1/frame$2 \
         --iteration $3 \
         $4
 }
-render_vq coffee_martini 1 30000 "--skip_train --render_train_interp"
+# render_vq coffee_martini 1 30000 "--skip_train --render_train_interp"
+convert() {
+    python RT4KSR/scripts/nerfout2dual.py \
+        --dataroot RT4KSR/data/coffee_martini-kmeans-16-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8 \
+        --hrsrcroot output/$1/frame$2/train_interp/ours_$3/renders \
+        --grsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
+        --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
+        --name nerfout
+}
+convert coffee_martini 1 30000 12 10 6 6 6
