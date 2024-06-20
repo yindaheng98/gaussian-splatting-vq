@@ -178,7 +178,7 @@
                 "30000",
                 "layerize",
                 "--log2-clusters",
-                "16",
+                "12",
                 "--attribute",
                 "scaling",
                 // "rotation",

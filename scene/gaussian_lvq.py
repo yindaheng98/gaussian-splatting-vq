@@ -141,12 +141,12 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         lkmeans.fit(data, quant, self.final_clusters)
         setattr(self, self.lkmeans_varname(attr, i), lkmeans.layerized_kmeans)
         setattr(self, self.lkmeans_treename(attr, i), lkmeans.tree)
-        setattr(self, f"log2_clusters_{self.lkmeans_varname(attr, i)}", log2_clusters)
+        setattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}", log2_clusters)
 
     def save_codebook(self, dirpath, attr: Attribute, i=0):
         super().save_codebook(dirpath, attr, i)
         os.makedirs(dirpath, exist_ok=True)
-        log2_clusters = getattr(self, f"log2_clusters_{self.lkmeans_varname(attr, i)}")
+        log2_clusters = getattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}")
         path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".npz")
         lkmeans = getattr(self, self.lkmeans_varname(attr, i))
         print(f"save layerized codebook {path}.")
