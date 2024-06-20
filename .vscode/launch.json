@@ -120,7 +120,8 @@
                 "-m",
                 "output/coffee_martini/frame1",
                 "--iteration",
-                "30000"
+                "30000",
+                "--render_train_interp"
             ]
         },
         {

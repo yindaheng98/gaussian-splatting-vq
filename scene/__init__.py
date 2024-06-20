@@ -94,5 +94,13 @@ class Scene:
     def getTrainCameras(self, scale=1.0):
         return self.train_cameras[scale]
 
+    def getTrainInterpCameras(self, scale=1.0):
+        if hasattr(self, "train_interp_cameras"):
+            train_interp_cameras = getattr(self, "train_interp_cameras")
+            if scale in train_interp_cameras:
+                return train_interp_cameras[scale]
+        print(f"Init interp cameras, scale={scale}")
+        return self.train_cameras[scale]
+
     def getTestCameras(self, scale=1.0):
         return self.test_cameras[scale]
