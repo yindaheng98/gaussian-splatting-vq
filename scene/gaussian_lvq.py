@@ -18,7 +18,7 @@ def knn_init(kmeans, n=8, batch=4096):
     return neighbors_idx, dists
 
 
-def marged_cluster(a: torch.Tensor, b: torch.Tensor):
+def merged_cluster(a: torch.Tensor, b: torch.Tensor):
     ab = torch.cat([a, b], dim=0)
     center = ab.mean(dim=0, keepdim=True)
     return ab, center
@@ -26,7 +26,7 @@ def marged_cluster(a: torch.Tensor, b: torch.Tensor):
 
 def vdistance(a: torch.Tensor, b: torch.Tensor):
     """Virtual distance for quant tree. Just the avg distance from center to points after merge."""
-    _, center = marged_cluster(a, b)
+    _, center = merged_cluster(a, b)
     dist = torch.norm(torch.cat([a, b], dim=0)-center, dim=1, p=2).mean()
     return dist
 
@@ -53,12 +53,12 @@ class LayeredKMeans:
                 dists[center_idx, i] = vdistance(center_data, neighbor_data)
         return dists
 
-    def merge(self, clusters, dists, tmp_kmeans):
+    def merge(self, clusters, dists, tmp_kmeans, tmp_neighbors_idx):
         """Merge the clusters and dists, and expand self.layerized_kmeans"""
         min_pos = (dists == dists.min()).nonzero()[0]
-        min_idx, min_neighbors_idx = min_pos[0], self.neighbors_idx[*min_pos]
+        min_idx, min_neighbors_idx = min_pos[0], tmp_neighbors_idx[*min_pos]
         # concat to get new cluster and center
-        new_cluster, new_center = marged_cluster(clusters[min_idx], clusters[min_neighbors_idx])
+        new_cluster, new_center = merged_cluster(clusters[min_idx], clusters[min_neighbors_idx])
         # add new cluster
         new_center_idx = len(clusters)
         clusters.append(None)
@@ -67,16 +67,27 @@ class LayeredKMeans:
         clusters[min_idx] = clusters[min_neighbors_idx] = None
         # add new center
         tmp_kmeans = torch.cat([tmp_kmeans, new_center], dim=0)
-        # TODO: delete old center
-        print(min_idx, min_neighbors_idx)
-        return tmp_kmeans
+        # delete old center
+        tmp_kmeans[min_idx, ...] = torch.inf
+        tmp_kmeans[min_neighbors_idx, ...] = torch.inf
+        # update neighbors
+        should_update = torch.logical_or(
+            tmp_neighbors_idx == min_idx,
+            tmp_neighbors_idx == min_neighbors_idx
+        ).any(dim=1).nonzero()[..., 0]
+        should_update = should_update[torch.logical_and(should_update != min_idx, should_update != min_neighbors_idx)]
+        new_dist = torch.norm(tmp_kmeans[should_update, ...].unsqueeze(-2) - tmp_kmeans, p=2, dim=-1)
+        new_knn = new_dist.topk(dists.shape[1] + 1, largest=False)
+        tmp_neighbors_idx[should_update, ...] = new_knn.indices[:, 1:].type(torch.int32)
+        return tmp_kmeans, tmp_neighbors_idx
 
     def fit(self, data, quant):
         clusters = self.clusters_init(data, quant)
         dists = self.distance_init(clusters)
         self.layerized_kmeans = self.kmeans.clone()
         tmp_kmeans = self.kmeans.clone()
-        tmp_kmeans = self.merge(clusters, dists, tmp_kmeans)
+        tmp_neighbors_idx = self.neighbors_idx.clone()
+        tmp_kmeans, tmp_neighbors_idx = self.merge(clusters, dists, tmp_kmeans, tmp_neighbors_idx)
         raise NotImplementedError("fit not implemented")
 
 
