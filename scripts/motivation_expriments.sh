@@ -42,4 +42,18 @@ quantize() {
         --log2-clusters-opacity $8
 
 }
-quantize coffee_martini 1 30000 12 10 6 6 6
+# quantize coffee_martini 1 30000 12 10 6 6 6
+render() {
+    python render.py \
+        -m output/$1/frame$2 \
+        --iteration $3 \
+        $4
+}
+render coffee_martini 1 30000 "--skip_train --render_train_interp"
+render_vq() {
+    python render.py \
+        -m output/vq-$1/frame$2 \
+        --iteration $3 \
+        $4
+}
+render_vq coffee_martini 1 30000 "--skip_train --render_train_interp"
