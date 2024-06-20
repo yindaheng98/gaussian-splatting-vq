@@ -1,6 +1,7 @@
 import torch
 import tqdm
 import math
+from utils.camera_utils import quaternion_to_matrix
 from .gaussian_model import GaussianModel
 
 
@@ -25,39 +26,6 @@ def quaternion_mult(q1, q2):
     y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
     z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
     return torch.stack([w, x, y, z]).T
-
-
-def quaternion_to_matrix(quaternions: torch.Tensor) -> torch.Tensor:
-    # From pytorch3d.transforms.rotation_conversions
-    """
-    Convert rotations given as quaternions to rotation matrices.
-
-    Args:
-        quaternions: quaternions with real part first,
-            as tensor of shape (..., 4).
-
-    Returns:
-        Rotation matrices as tensor of shape (..., 3, 3).
-    """
-    r, i, j, k = torch.unbind(quaternions, -1)
-    # pyre-fixme[58]: `/` is not supported for operand types `float` and `Tensor`.
-    two_s = 2.0 / (quaternions * quaternions).sum(-1)
-
-    o = torch.stack(
-        (
-            1 - two_s * (j * j + k * k),
-            two_s * (i * j - k * r),
-            two_s * (i * k + j * r),
-            two_s * (i * j + k * r),
-            1 - two_s * (i * i + k * k),
-            two_s * (j * k - i * r),
-            two_s * (i * k - j * r),
-            two_s * (j * k + i * r),
-            1 - two_s * (i * i + j * j),
-        ),
-        -1,
-    )
-    return o.reshape(quaternions.shape[:-1] + (3, 3))
 
 
 def weighted_l2_loss(x, y, w):

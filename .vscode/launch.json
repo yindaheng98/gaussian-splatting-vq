@@ -120,12 +120,11 @@
                 "-m",
                 "output/coffee_martini/frame1",
                 "--iteration",
-                "30000",
-                "--render_train_interp"
+                "30000"
             ]
         },
         {
-            "name": "render next",
+            "name": "render interp",
             "type": "debugpy",
             "request": "launch",
             "program": "render.py",
@@ -133,9 +132,11 @@
             "justMyCode": false,
             "args": [
                 "-m",
-                "output/coffee_martini/frame200-incremental",
+                "output/coffee_martini/frame1",
                 "--iteration",
-                "7000"
+                "30000",
+                "--skip_train",
+                "--render_train_interp"
             ]
         },
         {
