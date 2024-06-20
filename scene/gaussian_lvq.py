@@ -151,7 +151,18 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         lkmeans = getattr(self, self.lkmeans_varname(attr, i))
         print(f"save layerized codebook {path}.")
         np.savez(path, codebook=lkmeans.cpu().numpy())
-        tree_path = path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".json")
+        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".json")
         tree = getattr(self, self.lkmeans_treename(attr, i))
         with open(tree_path, "w", encoding='utf8') as f:
             json.dump(tree, f, indent=2)
+
+    def load_codebook(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
+        super().load_codebook(self.dirpath, log2_clusters, attr, i)
+        path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".npz")
+        data = self.get_data(attr, i)
+        print(f"load layerized codebook {path}.")
+        lkmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
+        setattr(self, self.lkmeans_varname(attr, i), lkmeans)
+        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".json")
+        with open(tree_path, "r", encoding='utf8') as f:
+            setattr(self, self.lkmeans_treename(attr, i), json.load(f))

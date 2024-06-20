@@ -286,9 +286,19 @@
             "justMyCode": false,
             "args": [
                 "--src",
-                "output/coffee_martini/frame1/point_cloud/iteration_30000",
-                "--dst",
-                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
+                "output/coffee_martini/frame1",
+                "--save",
+                "output/vq-coffee_martini/frame1",
+                "--iteration",
+                "30000",
+                "--log2-clusters",
+                "12",
+                "--attribute",
+                // "scaling",
+                // "rotation",
+                "features_dc",
+                // "features_rest",
+                // "opacity",
             ],
             "env": {
                 "PYTHONPATH": "."
