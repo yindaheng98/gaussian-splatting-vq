@@ -68,6 +68,7 @@ def layerize(args):
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.dirpath = os.path.join(args.save, target_reldir)
     gaussians.build_codebook(args.log2_clusters, args.attribute, args.index)
+    gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
 
 
 @subcommand([

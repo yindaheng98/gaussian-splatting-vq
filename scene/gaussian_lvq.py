@@ -1,3 +1,6 @@
+import os
+import numpy as np
+import json
 import torch
 import tqdm
 import math
@@ -56,7 +59,7 @@ class LayeredKMeans:
     def merge(self, clusters, dists, tmp_kmeans, tmp_neighbors_idx):
         """Merge the clusters and dists, and expand self.layerized_kmeans"""
         min_pos = (dists == dists.min()).nonzero()[0]
-        min_idx, min_neighbors_idx = min_pos[0], tmp_neighbors_idx[*min_pos]
+        min_idx, min_neighbors_idx = min_pos[0].item(), tmp_neighbors_idx[*min_pos].item()
         # concat to get new cluster and center
         new_cluster, new_center = merged_cluster(clusters[min_idx], clusters[min_neighbors_idx])
         # add new cluster
@@ -68,7 +71,7 @@ class LayeredKMeans:
         # add new center
         tmp_kmeans = torch.cat([tmp_kmeans, new_center], dim=0)
         self.layerized_kmeans = torch.cat([self.layerized_kmeans, new_center], dim=0)  # save result
-        self.tree.append((min_idx, min_neighbors_idx))
+        self.tree.append((min_idx, min_neighbors_idx))  # save result
         # delete old center
         tmp_kmeans[min_idx, ...] = torch.inf
         tmp_kmeans[min_neighbors_idx, ...] = torch.inf
@@ -104,28 +107,51 @@ class LayeredKMeans:
         dists[min_neighbors_idx, ...] = torch.inf
         return clusters, dists, tmp_kmeans, tmp_neighbors_idx
 
-    def fit(self, data, quant):
+    def fit(self, data, quant, final_clusters):
         clusters = self.clusters_init(data, quant)
         dists = self.distance_init(clusters).to(data.device)
         self.layerized_kmeans = self.kmeans.clone()
         self.tree = []
         tmp_kmeans = self.kmeans.clone()
         tmp_neighbors_idx = self.neighbors_idx.clone()
-        for _ in tqdm.tqdm(range(len(clusters)), desc="Merging clusters", position=0, leave=False):
+        for _ in tqdm.tqdm(range(len(clusters)-final_clusters), desc="Merging clusters", position=0, leave=False):
             clusters, dists, tmp_kmeans, tmp_neighbors_idx = self.merge(clusters, dists, tmp_kmeans, tmp_neighbors_idx)
         pass
 
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
     dirpath = ''
+    final_clusters = 2**6
+
+    def lkmeans_filename(self, log2_clusters: int, attr: Attribute, i=0):
+        return self._get_filename("lkmeans", log2_clusters, attr, i)
+
+    def lkmeans_varname(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans", attr, i)
+
+    def lkmeans_treename(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans_tree", attr, i)
 
     def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
         super().load_codebook(self.dirpath, log2_clusters, attr, i)
-
-        kmeans = getattr(self, super().get_name(attr, i))
+        kmeans = getattr(self, self.kmeans_varname(attr, i))
         lkmeans = LayeredKMeans(kmeans)
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        lkmeans.fit(data, quant)
-        # TODO: save LayeredKMeans
-        raise NotImplementedError("build_codebook not implemented")
+        lkmeans.fit(data, quant, self.final_clusters)
+        setattr(self, self.lkmeans_varname(attr, i), lkmeans.layerized_kmeans)
+        setattr(self, self.lkmeans_treename(attr, i), lkmeans.tree)
+        setattr(self, f"log2_clusters_{self.lkmeans_varname(attr, i)}", log2_clusters)
+
+    def save_codebook(self, dirpath, attr: Attribute, i=0):
+        super().save_codebook(dirpath, attr, i)
+        os.makedirs(dirpath, exist_ok=True)
+        log2_clusters = getattr(self, f"log2_clusters_{self.lkmeans_varname(attr, i)}")
+        path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".npz")
+        lkmeans = getattr(self, self.lkmeans_varname(attr, i))
+        print(f"save layerized codebook {path}.")
+        np.savez(path, codebook=lkmeans.cpu().numpy())
+        tree_path = path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".json")
+        tree = getattr(self, self.lkmeans_treename(attr, i))
+        with open(tree_path, "w", encoding='utf8') as f:
+            json.dump(tree, f, indent=2)

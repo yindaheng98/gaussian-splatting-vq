@@ -33,10 +33,6 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             raise ValueError("Not supported")
         return name
 
-    @abc.abstractmethod
-    def get_filename(self, log2_clusters: int, attr: Attribute, i=0):
-        pass
-
     def _get_name(self, method, attr: Attribute, i=0):
         data = getattr(self, "_" + str(attr))
         if data.ndim <= 2:
@@ -49,10 +45,6 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         else:
             raise ValueError("Not supported")
         return name
-
-    @abc.abstractmethod
-    def get_name(self, log2_clusters: int, attr: Attribute, i=0):
-        pass
 
     def get_data(self, attr: Attribute, i=0):
         data = getattr(self, "_" + str(attr)).detach()
