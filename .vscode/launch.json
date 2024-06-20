@@ -180,9 +180,9 @@
                 "--log2-clusters",
                 "12",
                 "--attribute",
-                "scaling",
+                // "scaling",
                 // "rotation",
-                // "features_dc",
+                "features_dc",
                 // "features_rest",
                 // "opacity",
             ]
