@@ -12,11 +12,12 @@
 import os
 import random
 import json
+from itertools import product
 from utils.system_utils import searchForMaxIteration
 from scene.dataset_readers import sceneLoadTypeCallbacks
 from scene.gaussian_model import GaussianModel
 from arguments import ModelParams
-from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON, camera_interp
 
 class Scene:
 
@@ -99,8 +100,14 @@ class Scene:
             train_interp_cameras = getattr(self, "train_interp_cameras")
             if scale in train_interp_cameras:
                 return train_interp_cameras[scale]
+        else:
+            setattr(self, "train_interp_cameras", {})
         print(f"Init interp cameras, scale={scale}")
-        return self.train_cameras[scale]
+        train_interp_cameras = []
+        for cam0, cam1 in product(self.train_cameras[scale], self.train_cameras[scale]):
+            train_interp_cameras.append(camera_interp(cam0, cam1))
+        getattr(self, "train_interp_cameras")[scale] = train_interp_cameras
+        return train_interp_cameras
 
     def getTestCameras(self, scale=1.0):
         return self.test_cameras[scale]
