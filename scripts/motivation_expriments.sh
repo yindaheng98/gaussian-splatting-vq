@@ -8,6 +8,9 @@ getsize() {
     stat -c%s $dirpath/point_cloud_vq.drc >>$dirpath/size/$fname
 }
 quantize() {
+    rm output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.ply
+    rm output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.drc
+    rm output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq_ddrc.ply
     # quant by kmeans
     python kmeans.py \
         --src output/$1/frame$2 \
@@ -52,6 +55,7 @@ quantize() {
 }
 # quantize coffee_martini 1 30000 12 10 6 6 6
 render() {
+    rm -rf output/$1/frame$2/train_interp/ours_$3
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
@@ -59,6 +63,7 @@ render() {
 }
 # render coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_vq() {
+    rm -rf output/vq-$1/frame$2/train_interp/ours_$3
     python render.py \
         -m output/vq-$1/frame$2 \
         --iteration $3 \
@@ -73,4 +78,11 @@ convert() {
         --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
         --name nerfout
 }
-convert coffee_martini 1 30000 12 10 6 6 6
+# convert coffee_martini 1 30000 12 10 6 6 6
+data4sr() {
+    quantize $1 $2 $3 $4 $5 $6 $7 $8
+    render $1 $2 $3 "--skip_train --render_train_interp"
+    render_vq $1 $2 $3 "--skip_train --render_train_interp"
+    convert $1 $2 $3 $4 $5 $6 $7 $8
+}
+data4sr coffee_martini 1 30000 12 10 6 6 6
