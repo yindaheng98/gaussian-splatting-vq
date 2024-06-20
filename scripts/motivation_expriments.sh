@@ -1,6 +1,12 @@
 # !/bin/bash
 # should run after kmeans_build.sh
 
+getsize() {
+    dirpath=output/vq-$1/frame$2/point_cloud/iteration_$3
+    fname=clusters-16-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8.txt
+    mkdir -p $dirpath/size
+    stat -c%s $dirpath/point_cloud_vq.drc >>$dirpath/size/$fname
+}
 quantize() {
     # quant by kmeans
     python kmeans.py \
@@ -23,6 +29,8 @@ quantize() {
         -qp 16 \
         -point_cloud \
         -use_metadata
+    # get size
+    getsize $@
     # decompress by draco
     ./build/Release/draco_decoder \
         -i output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.drc \
