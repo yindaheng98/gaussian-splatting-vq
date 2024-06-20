@@ -7,22 +7,25 @@ from .gaussian_kmeans import KMeansGaussianModel, Attribute
 def knn(kmeans, n=8, batch=4096):
     """Get k neighbor points for each point."""
     neighbors_idx = torch.zeros(kmeans.shape[0], n, dtype=torch.int32, device="cuda")
-    dists = torch.zeros(kmeans.shape[0], n, dtype=torch.float32, device="cuda")
     progress_bar = tqdm.tqdm(range(kmeans.shape[0]), desc="Init KMeans center K nearest")
     for i in range(math.ceil(kmeans.shape[0]/batch)):
         dist = torch.norm(kmeans[i*batch:i*batch+batch, ...].unsqueeze(-2) - kmeans, p=2, dim=-1)
         knn = dist.topk(n + 1, largest=False)
-        dists[i*batch:i*batch+batch, ...] = knn.values[:, 1:]
         neighbors_idx[i*batch:i*batch+batch, ...] = knn.indices[:, 1:]
         progress_bar.update(min(i*batch+batch, kmeans.shape[0])-i*batch)
-    return neighbors_idx, dists
+    return neighbors_idx
+
+
+def marged_center(a: torch.Tensor, b: torch.Tensor):
+    ab = torch.cat([a, b], dim=0)
+    center = ab.mean(dim=0, keepdim=True)
+    return center
 
 
 def vdistance(a: torch.Tensor, b: torch.Tensor):
     """Virtual distance for quant tree. Just the avg distance from center to points after merge."""
-    ab = torch.cat([a, b], dim=0)
-    center = ab.mean(dim=0, keepdim=True)
-    dist = torch.norm(ab-center, dim=1, p=2).mean()
+    center = marged_center(a, b)
+    dist = torch.norm(torch.cat([a, b], dim=0)-center, dim=1, p=2).mean()
     return dist
 
 
@@ -45,6 +48,6 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         kmeans = getattr(self, super().get_name(attr, i))
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        indxs, kdists = knn(kmeans)
-        dists = distance_init(kmeans, indxs, data, quant)
+        neighbors_idx = knn(kmeans)
+        dists = distance_init(kmeans, neighbors_idx, data, quant)
         raise NotImplementedError("build_codebook not implemented")
