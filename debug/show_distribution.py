@@ -24,12 +24,27 @@ if __name__ == "__main__":
     gaussians.load_codebook(os.path.join(args.save, target_reldir), args.log2_clusters, args.attribute, args.index)
 
     data = gaussians.get_data(args.attribute, args.index).detach().cpu().numpy()
-    kmeans = getattr(gaussians, gaussians.kmeans_varname(args.attribute, args.index)).detach().cpu().numpy()
+    pcd_data = o3d.geometry.PointCloud()
+    pcd_data.points = o3d.utility.Vector3dVector(data)
+    pcd_data.colors = o3d.utility.Vector3dVector(data)
 
-    pcd_src = o3d.geometry.PointCloud()
-    pcd_src.points = o3d.utility.Vector3dVector(data)
-    pcd_src.colors = o3d.utility.Vector3dVector(data)
-    pcd_dst = o3d.geometry.PointCloud()
-    pcd_dst.points = o3d.utility.Vector3dVector(kmeans)
-    pcd_dst.colors = o3d.utility.Vector3dVector(np.array([[0, 0, 0]]*kmeans.shape[0]))
-    o3d.visualization.draw_geometries([pcd_src, pcd_dst])
+    kmeans = getattr(gaussians, gaussians.kmeans_varname(args.attribute, args.index)).detach().cpu().numpy()
+    pcd_kmeans = o3d.geometry.PointCloud()
+    pcd_kmeans.points = o3d.utility.Vector3dVector(kmeans)
+    pcd_kmeans.colors = o3d.utility.Vector3dVector(np.array([[0, 0, 0]]*kmeans.shape[0]))
+
+    lkmeans = getattr(gaussians, gaussians.lkmeans_varname(args.attribute, args.index)).detach().cpu().numpy()
+    tree = getattr(gaussians, gaussians.lkmeans_treename(args.attribute, args.index))
+    leaf_n = kmeans.shape[0]
+    lines = [(i+leaf_n, t[0]) for i, t in enumerate(tree)] + [(i+leaf_n, t[1]) for i, t in enumerate(tree)]
+    line_set_lkmeans = o3d.geometry.LineSet(
+        points=o3d.utility.Vector3dVector(lkmeans),
+        lines=o3d.utility.Vector2iVector(lines),
+    )
+
+    geometries = [
+        pcd_data,
+        pcd_kmeans,
+        line_set_lkmeans
+    ]
+    o3d.visualization.draw_geometries(geometries)
