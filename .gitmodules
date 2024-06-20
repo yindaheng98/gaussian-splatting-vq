@@ -10,3 +10,6 @@
 [submodule "draco-3dgs"]
 	path = draco-3dgs
 	url = https://github.com/yindaheng98/draco-3dgs
+[submodule "RT4KSR"]
+	path = RT4KSR
+	url = https://github.com/yindaheng98/RT4KSR
