@@ -20,6 +20,40 @@ class Attribute(Enum):
 
 class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
+    def _get_filename(self, method, log2_clusters: int, attr: Attribute, i=0):
+        data = getattr(self, "_" + str(attr))
+        if data.ndim <= 2:
+            name = f"{method}_{log2_clusters}_{attr}"
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                name = f"{method}_{log2_clusters}_{attr}"
+            else:
+                name = f"{method}_{log2_clusters}_{attr}_{i}"
+        else:
+            raise ValueError("Not supported")
+        return name
+
+    @abc.abstractmethod
+    def get_filename(self, log2_clusters: int, attr: Attribute, i=0):
+        pass
+
+    def _get_name(self, method, attr: Attribute, i=0):
+        data = getattr(self, "_" + str(attr))
+        if data.ndim <= 2:
+            name = f"{method}_{attr}"
+        elif data.ndim == 3:
+            if data.shape[1] == 1:
+                name = f"{method}_{attr}"
+            else:
+                name = f"{method}_{attr}_{i}"
+        else:
+            raise ValueError("Not supported")
+        return name
+
+    @abc.abstractmethod
+    def get_name(self, log2_clusters: int, attr: Attribute, i=0):
+        pass
+
     def get_data(self, attr: Attribute, i=0):
         data = getattr(self, "_" + str(attr)).detach()
         if data.ndim <= 2:

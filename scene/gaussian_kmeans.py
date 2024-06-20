@@ -9,30 +9,10 @@ class KMeansGaussianModel(VQGaussianModel):
     method = "kmeans"
 
     def get_filename(self, log2_clusters: int, attr: Attribute, i=0):
-        data = getattr(self, "_" + str(attr))
-        if data.ndim <= 2:
-            name = f"{self.method}_{log2_clusters}_{attr}"
-        elif data.ndim == 3:
-            if data.shape[1] == 1:
-                name = f"{self.method}_{log2_clusters}_{attr}"
-            else:
-                name = f"{self.method}_{log2_clusters}_{attr}_{i}"
-        else:
-            raise ValueError("Not supported")
-        return name
+        return self._get_filename("kmeans", log2_clusters, attr, i)
 
     def get_name(self, attr: Attribute, i=0):
-        data = getattr(self, "_" + str(attr))
-        if data.ndim <= 2:
-            name = f"{self.method}_{attr}"
-        elif data.ndim == 3:
-            if data.shape[1] == 1:
-                name = f"{self.method}_{attr}"
-            else:
-                name = f"{self.method}_{attr}_{i}"
-        else:
-            raise ValueError("Not supported")
-        return name
+        return self._get_name("kmeans", attr, i)
 
     @staticmethod
     def kmeans_batch(log2_clusters, datasize):
