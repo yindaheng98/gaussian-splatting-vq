@@ -100,8 +100,8 @@ data4sr() {
     }
     quant_convert $1 $2 $3 8 4 4 4 4 8     # worst
     quant_convert $1 $2 $3 16 16 16 16 4 8 # best
+    quant_convert $1 $2 $3 12 10 10 10 4 8 # dual=color restore
     quant_convert $1 $2 $3 14 13 13 13 4 8
-    quant_convert $1 $2 $3 12 10 10 10 4 8
     quant_convert $1 $2 $3 10 7 7 7 4 8
 }
 data4sr coffee_martini 1 30000
