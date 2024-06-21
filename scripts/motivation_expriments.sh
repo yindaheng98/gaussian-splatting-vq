@@ -5,7 +5,7 @@ getsize() {
     dirpath=output/vq-$1/frame$2/point_cloud/iteration_$3
     fname=clusters-16-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8.txt
     mkdir -p $dirpath/size
-    stat -c%s $dirpath/point_cloud_vq.drc >>$dirpath/size/$fname
+    stat -c%s $dirpath/point_cloud_vq.drc >$dirpath/size/$fname
 }
 quantize() {
     rm output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.ply
@@ -80,8 +80,8 @@ convert() {
 }
 # convert coffee_martini 1 30000 12 10 6 6 6
 data4sr() {
-    quantize $1 $2 $3 $4 $5 $6 $7 $8
     render $1 $2 $3 "--skip_train --render_train_interp"
+    quantize $1 $2 $3 $4 $5 $6 $7 $8
     render_vq $1 $2 $3 "--skip_train --render_train_interp"
     convert $1 $2 $3 $4 $5 $6 $7 $8
 }
