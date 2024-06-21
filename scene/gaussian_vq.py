@@ -18,6 +18,23 @@ class Attribute(Enum):
         return self.value
 
 
+def spatial_split(xyz: torch.Tensor, xyz_tile_size):
+    print("spatial_split", xyz_tile_size)
+    tile_size = torch.FloatTensor([xyz_tile_size[0], xyz_tile_size[1], xyz_tile_size[2]]).to(xyz.device)
+    floors = (xyz/tile_size.unsqueeze(0)).floor()
+    blkids = floors.type(torch.int32)
+    rests = xyz - floors*tile_size
+    return blkids, rests
+
+
+def spatial_merge(blkids: torch.Tensor, rests: torch.Tensor, xyz_tile_size):
+    print("spatial_merge", xyz_tile_size)
+    tile_size = torch.FloatTensor([xyz_tile_size[0], xyz_tile_size[1], xyz_tile_size[2]]).to(rests.device)
+    floors = blkids.type(torch.float32)
+    data = floors*tile_size.unsqueeze(0)+rests
+    return data
+
+
 class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
     def _get_filename(self, method, log2_clusters: int, attr: Attribute, i=0):
@@ -101,8 +118,14 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             raise ValueError("Not supported")
         data.requires_grad_(True)
 
+    xyz_tile_size = np.array([4., 4., 4.])
+
     def save_vq_ply(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        xyz_blkids, xyz_rests = spatial_split(self._xyz.detach(), self.xyz_tile_size)
+        xyz_blkids, xyz_rests = xyz_blkids.cpu().numpy(), xyz_rests.cpu().numpy()
+        np.savez(path + ".tilesinfo.npz", tile_size=self.xyz_tile_size, blkids=xyz_blkids)
 
         xyz = self._xyz.detach().cpu().numpy()
         normals = np.zeros_like(xyz)
@@ -122,7 +145,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             ('f_rest', 'i4')]
 
         elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
+        attributes = np.concatenate((xyz_rests, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
         elements[:] = list(map(tuple, attributes))
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
@@ -137,11 +160,15 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def load_vq_ply(self, path):
         plydata = PlyData.read(path)
 
-        xyz = np.stack((np.asarray(plydata.elements[0]["x"]),
-                        np.asarray(plydata.elements[0]["y"]),
-                        np.asarray(plydata.elements[0]["z"])),  axis=1)
+        xyz_rests = np.stack((np.asarray(plydata.elements[0]["x"]),
+                              np.asarray(plydata.elements[0]["y"]),
+                              np.asarray(plydata.elements[0]["z"])),  axis=1)
+        xyz_rests = torch.FloatTensor(xyz_rests).to(self._xyz.device)
+        tileinfo = np.load(path + ".tilesinfo.npz")
+        xyz_tile_size, xyz_blkids = tileinfo['tile_size'], tileinfo['blkids']
+        xyz = spatial_merge(torch.from_numpy(xyz_blkids).to(self._xyz.device), xyz_rests, xyz_tile_size)
         self._xyz.requires_grad_(False)
-        self._xyz[...] = torch.FloatTensor(xyz)
+        self._xyz[...] = xyz
         self._xyz.requires_grad_(True)
 
         scaling = np.asarray(plydata.elements[0]["scale"])
