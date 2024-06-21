@@ -30,6 +30,11 @@ quantize() {
         -o output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.drc \
         -cl 0 \
         -qp 16 \
+        -qs $4 \
+        -qr $5 \
+        -qdc $6 \
+        -qrest $7 -qg $7 \
+        -qo $8 \
         -point_cloud \
         -use_metadata
     # get size
@@ -85,4 +90,5 @@ data4sr() {
     render_vq $1 $2 $3 "--skip_train --render_train_interp"
     convert $1 $2 $3 $4 $5 $6 $7 $8
 }
-data4sr coffee_martini 1 30000 12 10 6 6 6
+# data4sr coffee_martini 1 30000 8 4 4 4 4 # worst
+# data4sr coffee_martini 1 30000 8 4 4 4 4 # best
