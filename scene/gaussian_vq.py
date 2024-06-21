@@ -19,16 +19,16 @@ class Attribute(Enum):
 
 
 def spatial_split(xyz: torch.Tensor, xyz_tile_size):
-    print("spatial_split", xyz_tile_size)
     tile_size = torch.FloatTensor([xyz_tile_size[0], xyz_tile_size[1], xyz_tile_size[2]]).to(xyz.device)
     floors = (xyz/tile_size.unsqueeze(0)).floor()
     blkids = floors.type(torch.int32)
+    print("spatial_split", xyz_tile_size, "blks", blkids.max(dim=0).values-blkids.min(dim=0).values)
     rests = xyz - floors*tile_size
     return blkids, rests
 
 
 def spatial_merge(blkids: torch.Tensor, rests: torch.Tensor, xyz_tile_size):
-    print("spatial_merge", xyz_tile_size)
+    print("spatial_merge", xyz_tile_size, "blks", "blks", blkids.max(dim=0).values-blkids.min(dim=0).values)
     tile_size = torch.FloatTensor([xyz_tile_size[0], xyz_tile_size[1], xyz_tile_size[2]]).to(rests.device)
     floors = blkids.type(torch.float32)
     data = floors*tile_size.unsqueeze(0)+rests
@@ -170,6 +170,14 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         xyz_tile_size, xyz_blkids = tileinfo['tile_size'], tileinfo['blkids']
         xyz = spatial_merge(torch.from_numpy(xyz_blkids).to(self._xyz.device), xyz_rests, xyz_tile_size)
         self._xyz.requires_grad_(False)
+        mean = torch.abs(self._xyz).mean(dim=0).cpu().numpy()
+        mean_dequantized = torch.abs(xyz).mean(dim=0).cpu().numpy()
+        loss = torch.abs(xyz - self._xyz).mean(dim=0).cpu().numpy()
+        print(f"merge tiles.")
+        print(f"xyz loss:       {loss}")
+        print(f"xyz rel loss:   {loss / mean_dequantized}")
+        print(f"xyz mean:       {mean_dequantized}")
+        print(f"xyz mean shift: {mean - mean_dequantized}")
         self._xyz[...] = xyz
         self._xyz.requires_grad_(True)
 
