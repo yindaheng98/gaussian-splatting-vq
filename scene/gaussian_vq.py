@@ -125,7 +125,9 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
         xyz_blkids, xyz_rests = spatial_split(self._xyz.detach(), self.xyz_tile_size)
         xyz_blkids, xyz_rests = xyz_blkids.cpu().numpy(), xyz_rests.cpu().numpy()
-        np.savez(path + ".tilesinfo.npz", tile_size=self.xyz_tile_size, blkids=xyz_blkids)
+        np.savez(
+            os.path.join(os.path.dirname(path), "point_cloud_vq.tilesinfo.npz"),
+            tile_size=self.xyz_tile_size, blkids=xyz_blkids)
 
         xyz = self._xyz.detach().cpu().numpy()
         normals = np.zeros_like(xyz)
@@ -164,7 +166,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
                               np.asarray(plydata.elements[0]["y"]),
                               np.asarray(plydata.elements[0]["z"])),  axis=1)
         xyz_rests = torch.FloatTensor(xyz_rests).to(self._xyz.device)
-        tileinfo = np.load(path + ".tilesinfo.npz")
+        tileinfo = np.load(os.path.join(os.path.dirname(path), "point_cloud_vq.tilesinfo.npz"))
         xyz_tile_size, xyz_blkids = tileinfo['tile_size'], tileinfo['blkids']
         xyz = spatial_merge(torch.from_numpy(xyz_blkids).to(self._xyz.device), xyz_rests, xyz_tile_size)
         self._xyz.requires_grad_(False)
