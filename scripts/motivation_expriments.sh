@@ -92,7 +92,7 @@ data4sr() {
     render_vq $1 $2 $3 "--skip_train --render_train_interp"
     convert $1 $2 $3 $4 $5 $6 $7 $8
     }
-    quant_convert $1 $2 $3  8  4  4 4 4 14 # worst
-    quant_convert $1 $2 $3 16 16 16 4 4 16 # best
+    quant_convert $1 $2 $3  8  4  4  4 4 8 # worst
+    quant_convert $1 $2 $3 16 16 16 16 4 8 # best
 }
 data4sr coffee_martini 1 30000
