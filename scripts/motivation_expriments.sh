@@ -3,9 +3,15 @@
 QP=16
 getsize() {
     dirpath=output/vq-$1/frame$2/point_cloud/iteration_$3
-    fname=qp-$QP-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8.txt
+    fname=qp-$QP-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8.json
     mkdir -p $dirpath/size
-    stat -c%s $dirpath/point_cloud_vq.drc >$dirpath/size/$fname
+    jdata='"frame":'$(stat -c%s $dirpath/point_cloud_vq.drc)
+    jdata="$jdata"',"scale":'$(stat -c%s $dirpath/kmeans_${4}_scaling.npz)
+    jdata="$jdata"',"rot":'$(stat -c%s $dirpath/kmeans_${5}_rotation.npz)
+    jdata="$jdata"',"f_dc":'$(stat -c%s $dirpath/kmeans_${6}_features_dc.npz)
+    jdata="$jdata"',"f_rest":'$(stat -c%s $dirpath/kmeans_${7}_features_rest_0.npz)
+    jdata="$jdata"',"opacity":'$(stat -c%s $dirpath/kmeans_${8}_opacity.npz)
+    echo "{$jdata}" >$dirpath/size/$fname
 }
 quantize() {
     rm output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.ply
@@ -87,15 +93,15 @@ convert() {
 data4sr() {
     render $1 $2 $3 "--skip_train --render_train_interp"
     quant_convert() {
-    QP=$9
-    quantize $1 $2 $3 $4 $5 $6 $7 $8
-    render_vq $1 $2 $3 "--skip_train --render_train_interp"
-    convert $1 $2 $3 $4 $5 $6 $7 $8
+        QP=$9
+        quantize $1 $2 $3 $4 $5 $6 $7 $8
+        render_vq $1 $2 $3 "--skip_train --render_train_interp"
+        convert $1 $2 $3 $4 $5 $6 $7 $8
     }
-    quant_convert $1 $2 $3  8  4  4  4 4 8 # worst
+    quant_convert $1 $2 $3 8 4 4 4 4 8     # worst
     quant_convert $1 $2 $3 16 16 16 16 4 8 # best
     quant_convert $1 $2 $3 14 13 13 13 4 8
     quant_convert $1 $2 $3 12 10 10 10 4 8
-    quant_convert $1 $2 $3 10  7  7  7 4 8
+    quant_convert $1 $2 $3 10 7 7 7 4 8
 }
 data4sr coffee_martini 1 30000
