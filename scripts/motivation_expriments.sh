@@ -1,6 +1,6 @@
 # !/bin/bash
 # should run after kmeans_build.sh
-
+QP=16
 getsize() {
     dirpath=output/vq-$1/frame$2/point_cloud/iteration_$3
     fname=clusters-16-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8.txt
@@ -29,7 +29,7 @@ quantize() {
         -i output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.ply \
         -o output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.drc \
         -cl 0 \
-        -qp 16 \
+        -qp $QP \
         -qs $4 \
         -qr $5 \
         -qdc $6 \
@@ -86,9 +86,10 @@ convert() {
 # convert coffee_martini 1 30000 12 10 6 6 6
 data4sr() {
     render $1 $2 $3 "--skip_train --render_train_interp"
+    QP=$9
     quantize $1 $2 $3 $4 $5 $6 $7 $8
     render_vq $1 $2 $3 "--skip_train --render_train_interp"
     convert $1 $2 $3 $4 $5 $6 $7 $8
 }
-# data4sr coffee_martini 1 30000 8 4 4 4 4 # worst
-# data4sr coffee_martini 1 30000 8 4 4 4 4 # best
+# data4sr coffee_martini 1 30000 8 4 4 4 4 14 # worst
+# data4sr coffee_martini 1 30000 16 16 16 4 4 16 # best
