@@ -91,5 +91,5 @@ data4sr() {
     render_vq $1 $2 $3 "--skip_train --render_train_interp"
     convert $1 $2 $3 $4 $5 $6 $7 $8
 }
-# data4sr coffee_martini 1 30000 8 4 4 4 4 14 # worst
+# data4sr coffee_martini 1 30000  8  4  4 4 4 14 # worst
 # data4sr coffee_martini 1 30000 16 16 16 4 4 16 # best
