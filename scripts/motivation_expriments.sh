@@ -105,3 +105,13 @@ data4sr() {
     quant_convert $1 $2 $3 10 7 7 7 4 8
 }
 data4sr coffee_martini 1 30000
+data4sr cook_spinach 1 30000
+data4sr cut_roasted_beef 1 30000
+data4sr flame_salmon_1 1 30000
+data4sr flame_steak 1 30000
+data4sr sear_steak 1 30000
+
+data4sr discussion 1 30000
+data4sr stepin 1 30000
+data4sr trimming 1 30000
+data4sr vrheadset 1 30000

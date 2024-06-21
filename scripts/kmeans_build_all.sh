@@ -28,3 +28,13 @@ build_all_precision() {
 }
 
 build_all_precision coffee_martini 1 30000
+build_all_precision cook_spinach 1 30000
+build_all_precision cut_roasted_beef 1 30000
+build_all_precision flame_salmon_1 1 30000
+build_all_precision flame_steak 1 30000
+build_all_precision sear_steak 1 30000
+
+build_all_precision discussion 1 30000
+build_all_precision stepin 1 30000
+build_all_precision trimming 1 30000
+build_all_precision vrheadset 1 30000
