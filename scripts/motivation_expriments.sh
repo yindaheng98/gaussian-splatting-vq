@@ -75,6 +75,7 @@ render() {
 # render coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_vq() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3
+    cp output/$1/frame$2/cfg_args output/vq-$1/frame$2/cfg_args
     python render.py \
         -m output/vq-$1/frame$2 \
         --iteration $3 \
