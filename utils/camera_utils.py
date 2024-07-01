@@ -204,9 +204,9 @@ def quaternion_to_matrix(quaternions: torch.Tensor) -> torch.Tensor:
     )
     return o.reshape(quaternions.shape[:-1] + (3, 3))
 
-def camera_interp(cam0: Camera, cam1: Camera, factor: float = 0.5):
-    FoVx = cam0.FoVx * factor + cam1.FoVx * (1-factor)
-    FoVy = cam0.FoVy * factor + cam1.FoVy * (1-factor)
+def camera_interp(cam0: Camera, cam1: Camera, FoVx = None, FoVy = None, factor: float = 0.5):
+    FoVx = cam0.FoVx * factor + cam1.FoVx * (1-factor) if FoVx is None else FoVx
+    FoVy = cam0.FoVy * factor + cam1.FoVy * (1-factor) if FoVy is None else FoVy
     R = quaternion_to_matrix(matrix_to_quaternion(torch.from_numpy(cam0.R)) * factor + matrix_to_quaternion(torch.from_numpy(cam1.R)) * (1-factor)).numpy()
     T = cam0.T * factor + cam1.T * (1-factor)
 

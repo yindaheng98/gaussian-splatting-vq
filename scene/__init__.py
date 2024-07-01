@@ -105,7 +105,9 @@ class Scene:
         print(f"Init interp cameras, scale={scale}")
         train_interp_cameras = []
         for cam0, cam1 in product(self.train_cameras[scale], self.train_cameras[scale]):
-            train_interp_cameras.append(camera_interp(cam0, cam1))
+            FoVx = self.train_cameras[scale][0].FoVx
+            FoVy = self.train_cameras[scale][0].FoVy
+            train_interp_cameras.append(camera_interp(cam0, cam1, FoVx=FoVx, FoVy=FoVy))
         getattr(self, "train_interp_cameras")[scale] = train_interp_cameras
         return train_interp_cameras
 
