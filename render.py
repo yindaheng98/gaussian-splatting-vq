@@ -38,7 +38,8 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             gt = view.original_image[0:3, :, :]
             torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
-        torchvision.utils.save_image(depth/100, os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"))
+        depth_min, depth_max = depth.min(), depth[depth<depth.max()].max()
+        torchvision.utils.save_image((depth-depth_min)/(depth_max-depth_min), os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"))
         np.savez_compressed(os.path.join(depth_path, '{0:05d}'.format(idx) + ".npz"), depth=depth.cpu().numpy())
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, render_train_interp : bool, skip_test : bool):
