@@ -21,6 +21,15 @@ from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel
+import cv2
+
+def depth_colormap(depth):
+    depth_valid = depth[depth<depth.max()]
+    depth_max = torch.topk(depth_valid, depth_valid.shape[0]//10).values[-1]
+    depth_min = depth_valid.min()
+    depth_preview = torch.clamp((depth-depth_min)/(depth_max-depth_min), 0, 1)
+    depth_colored = cv2.applyColorMap((depth_preview[0,...]*255).type(torch.uint8).cpu().numpy(), cv2.COLORMAP_JET)
+    return depth_colored
 
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
@@ -38,8 +47,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
             gt = view.original_image[0:3, :, :]
             torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
-        depth_min, depth_max = depth.min(), depth[depth<depth.max()].max()
-        torchvision.utils.save_image((depth-depth_min)/(depth_max-depth_min), os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"))
+        cv2.imwrite(os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"), depth_colormap(depth))
         np.savez_compressed(os.path.join(depth_path, '{0:05d}'.format(idx) + ".npz"), depth=depth.cpu().numpy())
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, render_train_interp : bool, skip_test : bool):
