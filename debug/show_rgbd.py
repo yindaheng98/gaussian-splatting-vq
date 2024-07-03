@@ -39,17 +39,17 @@ fy_d = camera["fy"]
 cx_d = camera["width"]/2
 cy_d = camera["height"]/2
 height, width = depth_raw.shape
-x = np.linspace(0, width-1, width)
-y = np.linspace(0, height-1, height)
-x, y = np.meshgrid(x, y)
+u = np.linspace(0, width-1, width)
+v = np.linspace(0, height-1, height)
+u, v = np.meshgrid(u, v)
 Z = depth_raw
-X = (x - cx_d) * Z / fx_d
-Y = (y - cy_d) * Z / fy_d
+X = (u - cx_d) * Z / fx_d
+Y = (v - cy_d) * Z / fy_d
 points = np.stack((X.reshape(-1), Y.reshape(-1), Z.reshape(-1)), axis=-1)
-colors = color_raw.reshape(-1, 3)/255
+colors = color_raw.reshape(-1, 3)
 
-pcd.points = o3d.utility.Vector3dVector(points)
-pcd.colors = o3d.utility.Vector3dVector(colors)
+pcd.points = o3d.utility.Vector3dVector(points/1000)
+pcd.colors = o3d.utility.Vector3dVector(colors/255)
 o3d.visualization.draw_geometries([pcd])
 
 R = torch.tensor(camera["rotation"])
@@ -60,13 +60,13 @@ K = torch.tensor([
     [0, 0, 1]
 ])
 uv = torch.ones(color_raw.shape, dtype=torch.float32)
-uv[..., 0] = torch.arange(0, color_raw.shape[0], dtype=torch.float32).unsqueeze(1).expand(-1, color_raw.shape[1])
-uv[..., 1] = torch.arange(0, color_raw.shape[1], dtype=torch.float32).unsqueeze(0).expand(color_raw.shape[0], -1)
+uv[..., 0] = torch.arange(0, width, dtype=torch.float32).unsqueeze(0).expand(height, -1)
+uv[..., 1] = torch.arange(0, height, dtype=torch.float32).unsqueeze(1).expand(-1, width)
 depth = torch.from_numpy(depth_raw)
 xyz_camera = torch.inverse(K) @ uv.reshape(-1, 3).T * depth.reshape(-1)
 xyz_world = torch.inverse(R) @ (xyz_camera - t.unsqueeze(1))
 xyz = xyz_world.T.cpu().numpy()
 
-pcd.points = o3d.utility.Vector3dVector(xyz)
-pcd.colors = o3d.utility.Vector3dVector(colors)
+pcd.points = o3d.utility.Vector3dVector(xyz/1000)
+pcd.colors = o3d.utility.Vector3dVector(colors/255)
 o3d.visualization.draw_geometries([pcd])
