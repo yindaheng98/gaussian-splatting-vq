@@ -35,8 +35,6 @@ pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
         fx=camera["fx"], fy=camera["fy"],
         cx=camera["width"]/2, cy=camera["height"]/2
     ))
-# Flip it, otherwise the pointcloud will be upside down
-pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 o3d.visualization.draw_geometries([pcd])
 
 R = torch.tensor(camera["rotation"])
@@ -51,10 +49,11 @@ uv[..., 0] = torch.arange(0, width, dtype=torch.float32).unsqueeze(0).expand(hei
 uv[..., 1] = torch.arange(0, height, dtype=torch.float32).unsqueeze(1).expand(-1, width)
 depth = torch.from_numpy(depth_raw)
 xyz_camera = torch.inverse(K) @ uv.reshape(-1, 3).T * depth.reshape(-1)
+# xyz_camera = torch.from_numpy(np.asarray(pcd.points, dtype=np.float32)).T*1000
 xyz_world = torch.inverse(R) @ (xyz_camera - t.unsqueeze(1))
 xyz = xyz_world.T.cpu().numpy()
 
-pcd.points = o3d.utility.Vector3dVector(xyz/torch.tensor([1000., -1000., -1000.]))
+pcd.points = o3d.utility.Vector3dVector(xyz)
 colors = color_raw.reshape(-1, 3).astype(np.float32)/255
-pcd.colors = o3d.utility.Vector3dVector(colors)
+pcd.colors = o3d.utility.Vector3dVector(colors[:xyz.shape[0], ...])
 o3d.visualization.draw_geometries([pcd])
