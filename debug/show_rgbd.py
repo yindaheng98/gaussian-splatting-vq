@@ -34,23 +34,8 @@ o3d.visualization.draw_geometries([pcd])
 
 with open("output/coffee_martini/frame1/train_interp/ours_30000/depth/00000.camera.json", "r") as f:
     camera = json.load(f)
-fx_d = camera["fx"]
-fy_d = camera["fy"]
-cx_d = camera["width"]/2
-cy_d = camera["height"]/2
 height, width = depth_raw.shape
-u = np.linspace(0, width-1, width)
-v = np.linspace(0, height-1, height)
-u, v = np.meshgrid(u, v)
-Z = depth_raw
-X = (u - cx_d) * Z / fx_d
-Y = (v - cy_d) * Z / fy_d
-points = np.stack((X.reshape(-1), Y.reshape(-1), Z.reshape(-1)), axis=-1)
 colors = color_raw.reshape(-1, 3)
-
-pcd.points = o3d.utility.Vector3dVector(points/1000)
-pcd.colors = o3d.utility.Vector3dVector(colors/255)
-o3d.visualization.draw_geometries([pcd])
 
 R = torch.tensor(camera["rotation"])
 t = torch.tensor(camera["position"])
