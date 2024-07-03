@@ -51,6 +51,22 @@
             ]
         },
         {
+            "name": "train low SH",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/coffee_martini/frame1",
+                "--model_path",
+                "output/coffee_martini/frame1-SH1",
+                "--sh_degree",
+                "1"
+            ]
+        },
+        {
             "name": "train next",
             "type": "debugpy",
             "request": "launch",
