@@ -53,7 +53,10 @@ xyz_camera = torch.inverse(K) @ uv.reshape(-1, 3).T * depth.reshape(-1)
 xyz_world = torch.inverse(R) @ (xyz_camera - t.unsqueeze(1))
 xyz = xyz_world.T.cpu().numpy()
 
-pcd.points = o3d.utility.Vector3dVector(xyz)
 colors = color_raw.reshape(-1, 3).astype(np.float32)/255
+idx = np.abs(xyz).sum(axis=-1) < 1000
+xyz = xyz[idx, ...]
+colors = colors[idx, ...]
+pcd.points = o3d.utility.Vector3dVector(xyz)
 pcd.colors = o3d.utility.Vector3dVector(colors[:xyz.shape[0], ...])
 o3d.visualization.draw_geometries([pcd])
