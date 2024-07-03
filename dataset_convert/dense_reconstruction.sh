@@ -12,8 +12,16 @@ dense() {
     $COLMAP_EXE_PATH stereo_fusion \
         --workspace_path data/$1/frame1 \
         --workspace_format COLMAP \
-        --input_type geometric \
+        --input_type photometric \
         --output_path data/$1/frame1/fused.ply
+    # echo \
+    $COLMAP_EXE_PATH poisson_mesher \
+        --input_path data/$1/frame1/fused.ply \
+        --output_path data/$1/frame1/meshed-poisson.ply
+    # echo \
+    $COLMAP_EXE_PATH delaunay_mesher \
+        --input_path data/$1/frame1 \
+        --output_path data/$1/frame1/meshed-delaunay.ply
 }
 
 dense coffee_martini
