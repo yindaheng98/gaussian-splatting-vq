@@ -46,9 +46,10 @@ Z = depth_raw
 X = (x - cx_d) * Z / fx_d
 Y = (y - cy_d) * Z / fy_d
 points = np.stack((X.reshape(-1), Y.reshape(-1), Z.reshape(-1)), axis=-1)
+colors = color_raw.reshape(-1, 3)/255
 
 pcd.points = o3d.utility.Vector3dVector(points)
-pcd.colors = o3d.utility.Vector3dVector(color_raw.reshape(-1, 3))
+pcd.colors = o3d.utility.Vector3dVector(colors)
 o3d.visualization.draw_geometries([pcd])
 
 R = torch.tensor(camera["rotation"])
@@ -67,5 +68,5 @@ xyz_world = torch.inverse(R) @ (xyz_camera - t.unsqueeze(1))
 xyz = xyz_world.T.cpu().numpy()
 
 pcd.points = o3d.utility.Vector3dVector(xyz)
-pcd.colors = o3d.utility.Vector3dVector(color_raw.reshape(-1, 3))
+pcd.colors = o3d.utility.Vector3dVector(colors)
 o3d.visualization.draw_geometries([pcd])
