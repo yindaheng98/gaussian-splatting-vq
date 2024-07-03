@@ -12,6 +12,7 @@
 import torch
 from scene import Scene
 import os
+import json
 from tqdm import tqdm
 import numpy as np
 from os import makedirs
@@ -49,6 +50,8 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         cv2.imwrite(os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"), depth_colormap(depth))
         np.savez_compressed(os.path.join(depth_path, '{0:05d}'.format(idx) + ".npz"), depth=depth.cpu().numpy())
+        with open(os.path.join(depth_path, '{0:05d}'.format(idx) + ".camera.json"), "w", encoding="utf8") as f:
+            json.dump(view.toJSON(idx), f, indent=2)
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, render_train_interp : bool, skip_test : bool):
     with torch.no_grad():

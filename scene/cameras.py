@@ -12,6 +12,7 @@
 import torch
 from torch import nn
 import numpy as np
+from utils.graphics_utils import fov2focal
 from utils.graphics_utils import getWorld2View2, getProjectionMatrix
 
 class Camera(nn.Module):
@@ -61,6 +62,28 @@ class Camera(nn.Module):
         self.projection_matrix = getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx, fovY=self.FoVy).transpose(0,1).cuda()
         self.full_proj_transform = (self.world_view_transform.unsqueeze(0).bmm(self.projection_matrix.unsqueeze(0))).squeeze(0)
         self.camera_center = self.world_view_transform.inverse()[3, :3]
+        
+    def toJSON(camera, id):
+        Rt = np.zeros((4, 4))
+        Rt[:3, :3] = camera.R.transpose()
+        Rt[:3, 3] = camera.T
+        Rt[3, 3] = 1.0
+
+        W2C = np.linalg.inv(Rt)
+        pos = W2C[:3, 3]
+        rot = W2C[:3, :3]
+        serializable_array_2d = [x.tolist() for x in rot]
+        camera_entry = {
+            'id' : id,
+            'img_name' : camera.image_name,
+            'width' : camera.image_width,
+            'height' : camera.image_height,
+            'position': pos.tolist(),
+            'rotation': serializable_array_2d,
+            'fy' : fov2focal(camera.FoVy, camera.image_height),
+            'fx' : fov2focal(camera.FoVx, camera.image_width)
+        }
+        return camera_entry
 
 class MiniCam:
     def __init__(self, width, height, fovy, fovx, znear, zfar, world_view_transform, full_proj_transform):
