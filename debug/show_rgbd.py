@@ -8,7 +8,7 @@ import torch
 print("Read Redwood dataset")
 redwood_rgbd = o3d.data.SampleRedwoodRGBDImages()
 color_raw = cv2.imread("output/coffee_martini/frame1/train_interp/ours_30000/renders/00000.png")
-depth_raw = np.load("output/coffee_martini/frame1/train_interp/ours_30000/depth/00000.npz")["depth"][0, ...]
+depth_raw = np.load("output/coffee_martini/frame1/train_interp/ours_30000/renders/00000.depth.npz")["depth"][0, ...]
 # depth_raw = (depth_raw * 65536).astype(np.uint16)
 # color_raw = o3d.io.read_image(redwood_rgbd.color_paths[0])
 # depth_raw = o3d.io.read_image(redwood_rgbd.depth_paths[0])
@@ -25,7 +25,7 @@ plt.imshow(rgbd_image.depth)
 plt.show()
 
 
-with open("output/coffee_martini/frame1/train_interp/ours_30000/depth/00000.camera.json", "r") as f:
+with open("output/coffee_martini/frame1/train_interp/ours_30000/renders/00000.camera.json", "r") as f:
     camera = json.load(f)
 height, width = camera["height"], camera["width"]
 pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
