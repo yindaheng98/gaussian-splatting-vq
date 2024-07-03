@@ -24,18 +24,20 @@ plt.title('Redwood depth image')
 plt.imshow(rgbd_image.depth)
 plt.show()
 
-pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-    rgbd_image,
-    o3d.camera.PinholeCameraIntrinsic(
-        o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
-# Flip it, otherwise the pointcloud will be upside down
-pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-o3d.visualization.draw_geometries([pcd])
 
 with open("output/coffee_martini/frame1/train_interp/ours_30000/depth/00000.camera.json", "r") as f:
     camera = json.load(f)
-height, width = depth_raw.shape
-colors = color_raw.reshape(-1, 3)
+height, width = camera["height"], camera["width"]
+pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+    rgbd_image,
+    o3d.camera.PinholeCameraIntrinsic(
+        width=width, height=height,
+        fx=camera["fx"], fy=camera["fy"],
+        cx=camera["width"]/2, cy=camera["height"]/2
+    ))
+# Flip it, otherwise the pointcloud will be upside down
+pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+o3d.visualization.draw_geometries([pcd])
 
 R = torch.tensor(camera["rotation"])
 t = torch.tensor(camera["position"])
@@ -52,6 +54,7 @@ xyz_camera = torch.inverse(K) @ uv.reshape(-1, 3).T * depth.reshape(-1)
 xyz_world = torch.inverse(R) @ (xyz_camera - t.unsqueeze(1))
 xyz = xyz_world.T.cpu().numpy()
 
-pcd.points = o3d.utility.Vector3dVector(xyz/1000)
-pcd.colors = o3d.utility.Vector3dVector(colors/255)
+pcd.points = o3d.utility.Vector3dVector(xyz/torch.tensor([1000., -1000., -1000.]))
+colors = color_raw.reshape(-1, 3).astype(np.float32)/255
+pcd.colors = o3d.utility.Vector3dVector(colors)
 o3d.visualization.draw_geometries([pcd])
