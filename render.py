@@ -23,6 +23,7 @@ from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel
 import cv2
+# import tifffile
 
 def depth_colormap(depth):
     depth_valid = depth[depth<depth.max()]
@@ -50,6 +51,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         cv2.imwrite(os.path.join(depth_path, '{0:05d}'.format(idx) + ".png"), depth_colormap(depth))
         np.savez_compressed(os.path.join(depth_path, '{0:05d}'.format(idx) + ".npz"), depth=depth.cpu().numpy())
+        # tifffile.imsave(os.path.join(depth_path, '{0:05d}'.format(idx) + ".tif"), depth.cpu().numpy()) # another method
         with open(os.path.join(depth_path, '{0:05d}'.format(idx) + ".camera.json"), "w", encoding="utf8") as f:
             json.dump(view.toJSON(idx), f, indent=2)
 
