@@ -8,6 +8,12 @@ dense() {
         --workspace_format COLMAP \
         --PatchMatchStereo.max_image_size 2000 \
         --PatchMatchStereo.geom_consistency true
+    # echo \
+    $COLMAP_EXE_PATH stereo_fusion \
+        --workspace_path data/$1/frame1 \
+        --workspace_format COLMAP \
+        --input_type geometric \
+        --output_path data/$1/frame1/fused.ply
 }
 
 dense coffee_martini
