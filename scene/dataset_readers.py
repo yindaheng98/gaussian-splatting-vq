@@ -109,8 +109,7 @@ def fetchPly(path):
     vertices = plydata['vertex']
     positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
     colors = np.vstack([vertices['red'], vertices['green'], vertices['blue']]).T / 255.0
-    normals = np.vstack([vertices['nx'], vertices['ny'], vertices['nz']]).T
-    return BasicPointCloud(points=positions, colors=colors, normals=normals)
+    return BasicPointCloud(points=positions, colors=colors, normals=np.zeros((vertices.count, 3)))
 
 def storePly(path, xyz, rgb):
     # Define the dtype for the structured array

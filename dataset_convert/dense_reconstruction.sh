@@ -1,7 +1,7 @@
 # !/bin/bash
 COLMAP_EXE_PATH=colmap
 dense() {
-    cp data/$1/frame1/sparse/0/* data/$1/frame1/sparse
+    cp data/$1/frame1/sparse/0/*.bin data/$1/frame1/sparse
     # echo \
     $COLMAP_EXE_PATH patch_match_stereo \
         --workspace_path data/$1/frame1 \
@@ -22,6 +22,8 @@ dense() {
     $COLMAP_EXE_PATH delaunay_mesher \
         --input_path data/$1/frame1 \
         --output_path data/$1/frame1/meshed-delaunay.ply
+    rm data/coffee_martini/frame1/sparse/0/points3D.ply
+    cp data/$1/frame1/meshed-poisson.ply data/$1/frame1/sparse/0/points3D.ply
 }
 
 dense coffee_martini
