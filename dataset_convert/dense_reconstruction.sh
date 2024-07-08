@@ -22,8 +22,18 @@ dense() {
     $COLMAP_EXE_PATH delaunay_mesher \
         --input_path data/$1/frame1 \
         --output_path data/$1/frame1/meshed-delaunay.ply
-    rm data/coffee_martini/frame1/sparse/0/points3D.ply
-    cp data/$1/frame1/meshed-poisson.ply data/$1/frame1/sparse/0/points3D.ply
+    # echo \
+    python dataset_convert/delaunay2ply.py \
+        --delaunay data/$1/meshed-delaunay.ply \
+        --reference data/$1/frame1/meshed-poisson.ply \
+        --save data/$1/frame1/colorful-delaunay.ply
+    # echo \
+    python dataset_convert/poisson_filter.py \
+        --poisson data/$1/meshed-poisson.ply \
+        --reference data/$1/frame1/colorful-delaunay.ply \
+        --save data/$1/frame1/filtered-poisson.ply
+    rm data/$1/frame1/sparse/0/points3D.ply
+    cp data/$1/frame1/filtered-poisson.ply data/$1/frame1/sparse/0/points3D.ply
 }
 
 dense coffee_martini
