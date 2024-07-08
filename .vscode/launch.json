@@ -53,6 +53,22 @@
             ]
         },
         {
+            "name": "poisson_filter",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "dataset_convert/poisson_filter.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--poisson",
+                "data/coffee_martini/frame1/meshed-poisson.ply",
+                "--reference",
+                "data/coffee_martini/frame1/meshed-delaunay.ply",
+                "--save",
+                "data/coffee_martini/frame1/filtered-poisson.ply"
+            ]
+        },
+        {
             "name": "train",
             "type": "debugpy",
             "request": "launch",
