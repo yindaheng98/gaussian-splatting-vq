@@ -40,7 +40,7 @@
             "name": "delaunay2ply",
             "type": "debugpy",
             "request": "launch",
-            "program": "delaunay2ply.py",
+            "program": "dataset_convert/delaunay2ply.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
