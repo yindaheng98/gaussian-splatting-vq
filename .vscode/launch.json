@@ -37,6 +37,20 @@
             ]
         },
         {
+            "name": "delaunay2ply",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "delaunay2ply.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--delaunay",
+                "data/coffee_martini/frame1/meshed-delaunay.ply",
+                "--reference",
+                "data/coffee_martini/frame1/meshed-poisson.ply"
+            ]
+        },
+        {
             "name": "train",
             "type": "debugpy",
             "request": "launch",
