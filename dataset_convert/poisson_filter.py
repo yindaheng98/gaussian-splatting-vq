@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--poisson", type=str, required=True, help="path to the delaunay point cloud")
 parser.add_argument("--reference", type=str, required=True, help="path to the reference point cloud")
 parser.add_argument("--save", type=str, required=True, help="path to the reference point cloud")
-parser.add_argument("--threshold", type=float, default=1.)
+parser.add_argument("--threshold", type=float, default=0.2)
 
 
 def read_ply(path):
