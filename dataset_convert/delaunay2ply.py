@@ -23,7 +23,7 @@ def read_delaunay(path):
     plydata = PlyData.read(path)
     vertices = plydata['vertex']
     positions = torch.tensor(np.vstack([vertices['x'], vertices['y'], vertices['z']])).T
-    return positions
+    return positions, plydata['face']
 
 
 def get_color(pos, pos_reference, color_reference):
@@ -39,20 +39,22 @@ def get_color(pos, pos_reference, color_reference):
     return color
 
 
-def save_ply(xyz, color, path):
+def save_ply(xyz, color, path, face=None):
     dtype_full = [(attr, 'float32') for attr in ['x', 'y', 'z']]
     dtype_full += [(attr, 'uint8') for attr in ['red', 'green', 'blue']]
     elements = np.empty(xyz.shape[0], dtype=dtype_full)
     attributes = np.concatenate((xyz, color), axis=1)
     elements[:] = list(map(tuple, attributes))
     el = PlyElement.describe(elements, 'vertex')
-    PlyData([el]).write(path)
+    if face:
+        return PlyData([el, face]).write(path)
+    return PlyData([el]).write(path)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
     with torch.device(device="cuda"):
-        pos_delaunay = read_delaunay(args.delaunay)
+        pos_delaunay, face_delaunay = read_delaunay(args.delaunay)
         pos_reference, color_reference = read_ply(args.reference)
         color_delaunay = get_color(pos_delaunay, pos_reference, color_reference)
-        save_ply(pos_delaunay.cpu().numpy(), color_delaunay.cpu().numpy(), args.save)
+        save_ply(pos_delaunay.cpu().numpy(), color_delaunay.cpu().numpy(), args.save, face=face_delaunay)
