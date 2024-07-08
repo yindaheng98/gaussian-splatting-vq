@@ -33,7 +33,8 @@ dense() {
     python dataset_convert/delaunay2ply.py \
         --delaunay data/$1/frame1/meshed-delaunay.ply \
         --reference data/$1/frame1/meshed-poisson.ply \
-        --save data/$1/frame1/colorful-delaunay.ply
+        --save data/$1/frame1/colorful-delaunay.ply \
+        --batch 512
     fi
     if [ ! -e "data/$1/frame1/filtered-poisson.ply" ]; then
     # echo \
