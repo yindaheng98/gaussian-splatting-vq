@@ -1,12 +1,13 @@
 import argparse
 import torch
 import numpy as np
-from plyfile import PlyData
+from plyfile import PlyData, PlyElement
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--delaunay", type=str, required=True, help="path to the delaunay point cloud")
 parser.add_argument("--reference", type=str, required=True, help="path to the reference point cloud")
+parser.add_argument("--save", type=str, required=True, help="path to the reference point cloud")
 parser.add_argument("--batch", type=int, default=1024)
 
 
@@ -38,10 +39,20 @@ def get_color(pos, pos_reference, color_reference):
     return color
 
 
+def save_ply(xyz, color, path):
+    dtype_full = [(attr, 'float32') for attr in ['x', 'y', 'z']]
+    dtype_full += [(attr, 'uint8') for attr in ['red', 'green', 'blue']]
+    elements = np.empty(xyz.shape[0], dtype=dtype_full)
+    attributes = np.concatenate((xyz, color), axis=1)
+    elements[:] = list(map(tuple, attributes))
+    el = PlyElement.describe(elements, 'vertex')
+    PlyData([el]).write(path)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     with torch.device(device="cuda"):
         pos_delaunay = read_delaunay(args.delaunay)
         pos_reference, color_reference = read_ply(args.reference)
         color_delaunay = get_color(pos_delaunay, pos_reference, color_reference)
-        print(color_delaunay)
+        save_ply(pos_delaunay.cpu().numpy(), color_delaunay.cpu().numpy(), args.save)
