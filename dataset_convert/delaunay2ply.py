@@ -26,12 +26,12 @@ def read_delaunay(path):
     return positions, plydata['face']
 
 
-def get_color(pos, pos_reference, color_reference):
+def get_color(pos, pos_reference, color_reference, batch=1024):
     n_points = pos.shape[0]
     color = torch.zeros(size=(n_points, color_reference.shape[1]), dtype=color_reference.dtype)
     pbar = tqdm(desc="Processing points", total=n_points)
-    for i in range(0, n_points, args.batch):
-        step = args.batch if i+args.batch < n_points else (n_points-i)
+    for i in range(0, n_points, batch):
+        step = batch if i+batch < n_points else (n_points-i)
         dist = torch.norm(pos[i:i+step, ...].unsqueeze(1) - pos_reference.unsqueeze(0), p=2, dim=2)
         idx = dist.argmin(dim=1)
         color[i:i+step] = color_reference[idx, ...]
@@ -56,5 +56,5 @@ if __name__ == "__main__":
     with torch.device(device="cuda"):
         pos_delaunay, face_delaunay = read_delaunay(args.delaunay)
         pos_reference, color_reference = read_ply(args.reference)
-        color_delaunay = get_color(pos_delaunay, pos_reference, color_reference)
+        color_delaunay = get_color(pos_delaunay, pos_reference, color_reference, batch=args.batch)
         save_ply(pos_delaunay.cpu().numpy(), color_delaunay.cpu().numpy(), args.save, face=face_delaunay)
