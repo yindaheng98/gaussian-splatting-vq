@@ -49,7 +49,7 @@
                 "--reference",
                 "data/coffee_martini/frame1/meshed-poisson.ply",
                 "--save",
-                "data/coffee_martini/frame1/merged-poisson-delaunay.ply"
+                "data/coffee_martini/frame1/colorful-delaunay.ply"
             ]
         },
         {
@@ -63,7 +63,7 @@
                 "--poisson",
                 "data/coffee_martini/frame1/meshed-poisson.ply",
                 "--reference",
-                "data/coffee_martini/frame1/meshed-delaunay.ply",
+                "data/coffee_martini/frame1/colorful-delaunay.ply",
                 "--save",
                 "data/coffee_martini/frame1/filtered-poisson.ply"
             ]

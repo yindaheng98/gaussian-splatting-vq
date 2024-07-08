@@ -1,7 +1,6 @@
 import argparse
-import torch
 import numpy as np
-from plyfile import PlyData, PlyElement
+from plyfile import PlyData
 import open3d as o3d
 
 parser = argparse.ArgumentParser()
@@ -17,6 +16,18 @@ def read_ply(path):
     positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
     colors = np.vstack([vertices['red'], vertices['green'], vertices['blue']]).T
     return positions, colors
+
+
+def append_ply(xyz, color, src_path, dst_path):
+    dtype_full = [(attr, 'float32') for attr in ['x', 'y', 'z']]
+    dtype_full += [(attr, 'uint8') for attr in ['red', 'green', 'blue']]
+    elements = np.empty(xyz.shape[0], dtype=dtype_full)
+    attributes = np.concatenate((xyz, color), axis=1)
+    elements[:] = list(map(tuple, attributes))
+
+    plydata = PlyData.read(src_path)
+    plydata['vertex'].data = np.r_[plydata['vertex'].data, elements]
+    plydata.write(dst_path)
 
 
 if __name__ == "__main__":
@@ -37,4 +48,4 @@ if __name__ == "__main__":
     filter_index = unsigned_distance < args.threshold
     pos_filtered = pos_reference[filter_index, ...]
     color_filtered = color_reference[filter_index, ...]
-    print(unsigned_distance)
+    append_ply(pos_filtered, color_filtered, args.reference, args.save)
