@@ -39,6 +39,7 @@ def color_l2_loss(x, y):
 class GaussianModelIncremental(GaussianModel):
     neighbors = 8
     stretch_shrink_start = 4
+    scaling_max = 5
     loss_weight_overall = 0.5
     loss_weights = {'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0, 'color': 10.0}
 
@@ -46,6 +47,9 @@ class GaussianModelIncremental(GaussianModel):
         relative_scaling = self._scaling - self.stretch_shrink_start
         stretch = (torch.exp(relative_scaling[relative_scaling > 0]) - 1 + 1e-20).mean()
         return stretch
+
+    def fix(self):
+        self._scaling[self._scaling > self.scaling_max] = self.scaling_max
 
     def __init__(self, sh_degree: int):
         super().__init__(sh_degree=sh_degree)

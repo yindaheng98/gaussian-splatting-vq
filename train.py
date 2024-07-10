@@ -117,6 +117,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, load_ply
             if iteration < opt.iterations:
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad(set_to_none = True)
+                gaussians.fix()
 
             # if (iteration in checkpoint_iterations):
             #     print("\n[ITER {}] Saving Checkpoint".format(iteration))
