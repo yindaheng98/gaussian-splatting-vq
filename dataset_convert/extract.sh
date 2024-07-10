@@ -18,6 +18,8 @@ unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/discussion.zip -d dat
 unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/stepin.zip -d data
 unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/trimming.zip -d data
 unzip -o ~/dataset/video/dynamic_nerf_meeting_room_dataset/vrheadset.zip -d data
+unzip -o ~/dataset/video/st-nerf/taekwondo.zip -d data
+unzip -o ~/dataset/video/st-nerf/walking.zip -d data
 
 zip -F ~/dataset/video/Neural_3D_Video/flame_salmon_1_split.zip --out flame_salmon_1.zip
 unzip -o flame_salmon_1.zip -d data

@@ -37,3 +37,28 @@ convert_n3dv discussion 300 "cam_[0-9]+.mp4"
 convert_n3dv stepin 300 "cam_[0-9]+.mp4"
 convert_n3dv trimming 300 "cam_[0-9]+.mp4"
 convert_n3dv vrheadset 300 "cam_[0-9]+.mp4"
+
+convert_stnerf() {
+    for ((i = 1; i <= $2; ++i)); do
+        rm -rf "data/$1/frame$i/input"
+        mv "data/$1/frame$i/images" "data/$1/frame$i/input"
+    done
+    # extract first camera from dataset
+    rm -rf "data/$1/frame1" && cp -r "data/cameras/$1/frame1" "data/$1/frame1"
+    # or extract first camera by colmap
+    echo \
+    python convert.py \
+        -s "data/$1/frame1" \
+        --single_camera_per_image \
+        # --colmap_executable ".\data\colmap\COLMAP.bat"
+    for ((i = 2; i <= $2; ++i)); do
+        # echo \
+        python convert.py \
+            -s "data/$1/frame$i" \
+            --single_camera_per_image \
+            --load_cameras_path data/$1/frame1 \
+            # --colmap_executable ".\data\colmap\COLMAP.bat"
+    done
+}
+convert_stnerf taekwondo 101
+convert_stnerf walking 75
