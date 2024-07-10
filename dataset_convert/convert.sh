@@ -40,8 +40,10 @@ convert_n3dv vrheadset 300 "cam_[0-9]+.mp4"
 
 convert_stnerf() {
     for ((i = 1; i <= $2; ++i)); do
-        rm -rf "data/$1/frame$i/input"
-        mv "data/$1/frame$i/images" "data/$1/frame$i/input"
+        if [ ! -e "data/$1/frame$i/input" ]; then
+            rm -rf "data/$1/frame$i/labels" "data/$1/frame$i/pointclouds"
+            mv "data/$1/frame$i/images" "data/$1/frame$i/input"
+        fi
     done
     # extract first camera from dataset
     rm -rf "data/$1/frame1" && cp -r "data/cameras/$1/frame1" "data/$1/frame1"
