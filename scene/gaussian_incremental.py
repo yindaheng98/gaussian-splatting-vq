@@ -45,7 +45,9 @@ class GaussianModelIncremental(GaussianModel):
 
     def reg(self):
         relative_scaling = self._scaling - self.stretch_shrink_start
-        stretch = (torch.exp(relative_scaling[relative_scaling > 0]) - 1 + 1e-20).mean()
+        stretch = 0
+        if len(relative_scaling[relative_scaling > 0]) > 0:
+            stretch = (torch.exp(relative_scaling[relative_scaling > 0]).mean() - 1 + 1e-20)
         return stretch
 
     def fix(self):
