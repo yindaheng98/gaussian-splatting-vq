@@ -5,6 +5,7 @@ train() {
     python train.py \
         -s data/$1/frame1 \
         --model_path output/$1/frame1 \
+        --sh_degree 2 \
         --iterations $3
     fi
     LAST_FRAME="output/$1/frame1/point_cloud/iteration_$3/point_cloud.ply"
@@ -18,6 +19,7 @@ train() {
         python train.py \
             -s data/$1/frame$i \
             --model_path output/$1/frame$i \
+            --sh_degree 2 \
             --iterations $4 \
             --start_ply "$LAST_FRAME" \
             --densify_until_iter 0 \
