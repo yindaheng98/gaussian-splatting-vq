@@ -58,3 +58,6 @@ dense discussion
 dense stepin
 dense trimming
 dense vrheadset
+
+dense taekwondo
+dense walking
