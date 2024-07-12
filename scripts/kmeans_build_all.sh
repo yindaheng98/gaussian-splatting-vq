@@ -8,6 +8,7 @@ build() {
         --src output/$1/frame$2 \
         --save output/vq-$1/frame$2 \
         --iteration $3 \
+        --sh-degree 2 \
         build \
         --log2-clusters $4 \
         --attribute $5 \

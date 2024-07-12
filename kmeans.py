@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source dir.")
 parser.add_argument("--save", type=str, required=True, help="Where to save the codebook.")
 parser.add_argument("--iteration", type=int, required=True, help="The source iteration.")
+parser.add_argument("--sh-degree", type=int, default=3, help="SH degree.")
 
 # https://gist.github.com/mivade/384c2c41c3a29c637cb6c603d4197f9f
 subparsers = parser.add_subparsers(dest="subcommand")
@@ -49,7 +50,7 @@ def build(args):
     args = parser.parse_args()
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
-    gaussians = KMeansGaussianModel(sh_degree=3)
+    gaussians = KMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.build_codebook(args.log2_clusters, args.attribute, args.index)
     gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
@@ -64,7 +65,7 @@ def layerize(args):
     args = parser.parse_args()
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
-    gaussians = LayeredKMeansGaussianModel(sh_degree=3)
+    gaussians = LayeredKMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.dirpath = os.path.join(args.save, target_reldir)
     gaussians.build_codebook(args.log2_clusters, args.attribute, args.index)
@@ -113,7 +114,7 @@ def dequantize(_):
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq_ddrc.ply")
-    gaussians = KMeansGaussianModel(sh_degree=3)
+    gaussians = KMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.load_codebooks(
         os.path.join(args.save, target_reldir),
