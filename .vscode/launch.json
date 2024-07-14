@@ -79,23 +79,9 @@
                 "-s",
                 "data/coffee_martini/frame1",
                 "--model_path",
-                "output/coffee_martini/frame1"
-            ]
-        },
-        {
-            "name": "train low SH",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "train.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "-s",
-                "data/coffee_martini/frame1",
-                "--model_path",
-                "output/coffee_martini/frame1-SH1",
+                "output/coffee_martini/frame1",
                 "--sh_degree",
-                "1"
+                "2"
             ]
         },
         {
@@ -107,9 +93,11 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/coffee_martini/frame200",
+                "data/coffee_martini/frame2",
                 "--model_path",
-                "output/coffee_martini/frame200-incremental",
+                "output/coffee_martini/frame2",
+                "--sh_degree",
+                "2",
                 "--start_ply",
                 "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
                 "--densify_until_iter",
@@ -167,6 +155,8 @@
             "args": [
                 "-m",
                 "output/coffee_martini/frame1",
+                "--sh_degree",
+                "2",
                 "--iteration",
                 "30000",
                 "--resolution",
@@ -251,6 +241,8 @@
                 "output/coffee_martini/frame1",
                 "--save",
                 "output/vq-coffee_martini/frame1",
+                "--sh-degree",
+                "2",
                 "--iteration",
                 "30000",
                 "quantize",
@@ -282,6 +274,8 @@
                 "output/coffee_martini/frame1",
                 "--save",
                 "output/vq-coffee_martini/frame1",
+                "--sh-degree",
+                "2",
                 "--iteration",
                 "30000",
                 "dequantize",
@@ -339,9 +333,11 @@
             "justMyCode": false,
             "args": [
                 "-m",
-                "output/coffee_martini/frame1",
+                "output/vq-coffee_martini/frame1",
+                "--sh_degree",
+                "2",
                 "--iteration",
-                "30000"
+                "30000",
             ]
         },
         {
