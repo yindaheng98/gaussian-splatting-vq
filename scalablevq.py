@@ -3,6 +3,7 @@ from utils.argparse_utils import parser, argument, subcommand
 from scene.gaussian_kmeans import Attribute
 from scene.gaussian_lvq import LayeredKMeansGaussianModel
 
+parser.add_argument("--lsave", type=str, required=True, help="Where to save the layerized codebook.")
 
 @subcommand([
     argument("--log2-clusters", type=int, required=True, help="Qualtize to how many clusters."),
@@ -17,7 +18,7 @@ def build(args):
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.dirpath = os.path.join(args.save, target_reldir)
     gaussians.build_codebook(args.log2_clusters, args.attribute, args.index)
-    gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
+    gaussians.save_codebook(os.path.join(args.lsave, target_reldir), args.attribute, args.index)
 
 
 if __name__ == "__main__":
