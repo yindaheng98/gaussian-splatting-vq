@@ -86,7 +86,7 @@ def quantize(_):
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq.ply")
-    gaussians = KMeansGaussianModel(sh_degree=3)
+    gaussians = KMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.load_codebooks(
         os.path.join(args.save, target_reldir),
