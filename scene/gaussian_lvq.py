@@ -121,7 +121,7 @@ class LayeredKMeans:
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
     dirpath = ''
-    final_clusters = 2**6
+    log2_clusters_final = 6
 
     def lkmeans_filename(self, log2_clusters: int, attr: Attribute, i=0):
         return self._get_filename("lkmeans", log2_clusters, attr, i)
@@ -138,7 +138,7 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         lkmeans = LayeredKMeans(kmeans)
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        lkmeans.fit(data, quant, self.final_clusters)
+        lkmeans.fit(data, quant, 2**self.log2_clusters_final)
         setattr(self, self.lkmeans_varname(attr, i), lkmeans.layerized_kmeans)
         setattr(self, self.lkmeans_treename(attr, i), lkmeans.tree)
         setattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}", log2_clusters)

@@ -2,7 +2,6 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--src", type=str, required=True, help="The source dir.")
-parser.add_argument("--save", type=str, required=True, help="Where to save the codebook.")
 parser.add_argument("--iteration", type=int, required=True, help="The source iteration.")
 parser.add_argument("--sh-degree", type=int, default=3, help="SH degree.")
 

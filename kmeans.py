@@ -1,6 +1,8 @@
 import os
 from utils.argparse_utils import parser, argument, subcommand
-from scene.gaussian_kmeans import KMeansGaussianModel, Attribute
+from scene.gaussian_kmeans import Attribute, KMeansGaussianModel
+
+parser.add_argument("--save", type=str, required=True, help="Where to save the codebook.")
 
 
 @subcommand([
