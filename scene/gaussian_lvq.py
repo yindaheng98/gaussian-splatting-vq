@@ -168,3 +168,20 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".json")
         with open(tree_path, "r", encoding='utf8') as f:
             setattr(self, self.lkmeans_treename(attr, i), json.load(f))
+
+    def load_codebooks(self, dirpath,
+                       log2_clusters_scaling_init,
+                       log2_clusters_scaling_final,
+                       log2_clusters_rotation_init,
+                       log2_clusters_rotation_final,
+                       log2_clusters_features_dc_init,
+                       log2_clusters_features_dc_final,
+                       log2_clusters_features_rest_init,
+                       log2_clusters_features_rest_final,
+                       log2_clusters_opacity_init,
+                       log2_clusters_opacity_final):
+        self.load_codebook(dirpath, log2_clusters_scaling_init, log2_clusters_scaling_final, Attribute.scaling)
+        self.load_codebook(dirpath, log2_clusters_rotation_init, log2_clusters_rotation_final, Attribute.rotation)
+        self.load_codebook(dirpath, log2_clusters_features_dc_init, log2_clusters_features_dc_final, Attribute.features_dc)
+        self.load_codebook(dirpath, log2_clusters_features_rest_init, log2_clusters_features_rest_final, Attribute.features_rest)
+        self.load_codebook(dirpath, log2_clusters_opacity_init, log2_clusters_opacity_final, Attribute.opacity)
