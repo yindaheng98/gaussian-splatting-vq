@@ -140,6 +140,7 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         lkmeans.fit(data, quant, 2**log2_clusters_final)
         setattr(self, self.lkmeans_varname(attr, i), lkmeans.layerized_kmeans)
         setattr(self, self.lkmeans_treename(attr, i), lkmeans.tree)
+        setattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}", log2_clusters_init)
         setattr(self, f"log2_clusters_init_{self.kmeans_varname(attr, i)}", log2_clusters_init)
         setattr(self, f"log2_clusters_final_{self.kmeans_varname(attr, i)}", log2_clusters_final)
 
