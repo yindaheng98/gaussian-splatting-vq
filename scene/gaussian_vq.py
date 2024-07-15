@@ -22,7 +22,7 @@ def spatial_split(xyz: torch.Tensor, xyz_tile_size):
     tile_size = torch.FloatTensor([xyz_tile_size[0], xyz_tile_size[1], xyz_tile_size[2]]).to(xyz.device)
     floors = (xyz/tile_size.unsqueeze(0)).floor()
     blkids = floors.type(torch.int32)
-    print("spatial_split", xyz_tile_size, "blks", blkids.max(dim=0).values-blkids.min(dim=0).values)
+    print("spatial_split", xyz_tile_size, "blks", blkids.unique(dim=0).shape[0], blkids.max(dim=0).values-blkids.min(dim=0).values)
     rests = xyz - floors*tile_size
     return blkids, rests
 
