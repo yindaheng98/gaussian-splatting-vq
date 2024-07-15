@@ -19,8 +19,7 @@ def build(args):
     gaussians = LayeredKMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.init_clusters_path = os.path.join(args.save_init, target_reldir)
-    gaussians.log2_clusters_final = args.log2_clusters_final
-    gaussians.build_codebook(args.log2_clusters_init, args.attribute, args.index)
+    gaussians.build_codebook(args.log2_clusters_init, args.log2_clusters_final, args.attribute, args.index)
     gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
 
 

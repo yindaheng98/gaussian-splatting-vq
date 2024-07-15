@@ -275,7 +275,7 @@
             ]
         },
         {
-            "name": "kmeans layerize",
+            "name": "SVQ build",
             "type": "debugpy",
             "request": "launch",
             "program": "scalablevq.py",

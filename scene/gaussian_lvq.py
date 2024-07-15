@@ -121,10 +121,9 @@ class LayeredKMeans:
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
     init_clusters_path = ''
-    log2_clusters_final = 6
 
-    def lkmeans_filename(self, log2_clusters_init: int, attr: Attribute, i=0):
-        return self._get_filename("lkmeans", f"{log2_clusters_init}to{self.log2_clusters_final}", attr, i)
+    def lkmeans_filename(self, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
+        return self._get_filename("lkmeans", f"{log2_clusters_init}to{log2_clusters_final}", attr, i)
 
     def lkmeans_varname(self, attr: Attribute, i=0):
         return self._get_name("lkmeans", attr, i)
@@ -132,37 +131,39 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
     def lkmeans_treename(self, attr: Attribute, i=0):
         return self._get_name("lkmeans_tree", attr, i)
 
-    def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
-        super().load_codebook(self.init_clusters_path, log2_clusters, attr, i)
+    def build_codebook(self, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
+        super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
         kmeans = getattr(self, self.kmeans_varname(attr, i))
         lkmeans = LayeredKMeans(kmeans)
         data = self.get_data(attr, i).detach()
         quant = super().quantize(attr, i)
-        lkmeans.fit(data, quant, 2**self.log2_clusters_final)
+        lkmeans.fit(data, quant, 2**log2_clusters_final)
         setattr(self, self.lkmeans_varname(attr, i), lkmeans.layerized_kmeans)
         setattr(self, self.lkmeans_treename(attr, i), lkmeans.tree)
-        setattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}", log2_clusters)
+        setattr(self, f"log2_clusters_init_{self.kmeans_varname(attr, i)}", log2_clusters_init)
+        setattr(self, f"log2_clusters_final_{self.kmeans_varname(attr, i)}", log2_clusters_final)
 
     def save_codebook(self, dirpath, attr: Attribute, i=0):
         super().save_codebook(dirpath, attr, i)
         os.makedirs(dirpath, exist_ok=True)
-        log2_clusters = getattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}")
-        path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".npz")
+        log2_clusters_init = getattr(self, f"log2_clusters_init_{self.kmeans_varname(attr, i)}")
+        log2_clusters_final = getattr(self, f"log2_clusters_final_{self.kmeans_varname(attr, i)}")
+        path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".npz")
         lkmeans = getattr(self, self.lkmeans_varname(attr, i))
         print(f"save layerized codebook {path}.")
         np.savez(path, codebook=lkmeans.cpu().numpy())
-        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".json")
+        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".json")
         tree = getattr(self, self.lkmeans_treename(attr, i))
         with open(tree_path, "w", encoding='utf8') as f:
             json.dump(tree, f, indent=2)
 
-    def load_codebook(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
-        super().load_codebook(self.init_clusters_path, log2_clusters, attr, i)
-        path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".npz")
+    def load_codebook(self, dirpath, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
+        super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
+        path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".npz")
         data = self.get_data(attr, i)
         print(f"load layerized codebook {path}.")
         lkmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
         setattr(self, self.lkmeans_varname(attr, i), lkmeans)
-        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".json")
+        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".json")
         with open(tree_path, "r", encoding='utf8') as f:
             setattr(self, self.lkmeans_treename(attr, i), json.load(f))
