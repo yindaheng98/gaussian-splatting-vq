@@ -120,11 +120,11 @@ class LayeredKMeans:
 
 
 class LayeredKMeansGaussianModel(KMeansGaussianModel):
-    dirpath = ''
+    init_clusters_path = ''
     log2_clusters_final = 6
 
-    def lkmeans_filename(self, log2_clusters: int, attr: Attribute, i=0):
-        return self._get_filename("lkmeans", log2_clusters, attr, i)
+    def lkmeans_filename(self, log2_clusters_init: int, attr: Attribute, i=0):
+        return self._get_filename("lkmeans", f"{log2_clusters_init}to{self.log2_clusters_final}", attr, i)
 
     def lkmeans_varname(self, attr: Attribute, i=0):
         return self._get_name("lkmeans", attr, i)
@@ -133,7 +133,7 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         return self._get_name("lkmeans_tree", attr, i)
 
     def build_codebook(self, log2_clusters: int, attr: Attribute, i=0):
-        super().load_codebook(self.dirpath, log2_clusters, attr, i)
+        super().load_codebook(self.init_clusters_path, log2_clusters, attr, i)
         kmeans = getattr(self, self.kmeans_varname(attr, i))
         lkmeans = LayeredKMeans(kmeans)
         data = self.get_data(attr, i).detach()
@@ -157,7 +157,7 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
             json.dump(tree, f, indent=2)
 
     def load_codebook(self, dirpath, log2_clusters: int, attr: Attribute, i=0):
-        super().load_codebook(self.dirpath, log2_clusters, attr, i)
+        super().load_codebook(self.init_clusters_path, log2_clusters, attr, i)
         path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters, attr, i) + ".npz")
         data = self.get_data(attr, i)
         print(f"load layerized codebook {path}.")

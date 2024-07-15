@@ -18,10 +18,10 @@ def build(args):
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     gaussians = LayeredKMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
-    gaussians.dirpath = os.path.join(args.save_init, target_reldir)
+    gaussians.init_clusters_path = os.path.join(args.save_init, target_reldir)
     gaussians.log2_clusters_final = args.log2_clusters_final
     gaussians.build_codebook(args.log2_clusters_init, args.attribute, args.index)
-    gaussians.save_codebook(os.path.join(args.lsave, target_reldir), args.attribute, args.index)
+    gaussians.save_codebook(os.path.join(args.save, target_reldir), args.attribute, args.index)
 
 
 if __name__ == "__main__":
