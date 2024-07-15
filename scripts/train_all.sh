@@ -41,3 +41,6 @@ train discussion 300 30000 7000
 train stepin 300 30000 7000
 train trimming 300 30000 7000
 train vrheadset 300 30000 7000
+
+train taekwondo 101 30000 7000
+train walking 75 30000 7000
