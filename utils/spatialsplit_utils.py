@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def spatial_split(xyz: torch.Tensor, xyz_tile_size):
@@ -28,3 +29,31 @@ def spatial_merge(blkids: torch.Tensor, rests: torch.Tensor, xyz_tile_size):
     floors = blkids.type(torch.float32)
     data = floors*tile_size.unsqueeze(0)+rests
     return data
+
+
+def spatial_split_octree(xyz: torch.Tensor, xyz_tile_size_base=[1., 1., 1.], xyz_tile_size_maxlevel=4, split_thr=5e3):
+    tile_size_base = np.asarray(xyz_tile_size_base[:3])
+    octree_blkids = torch.IntTensor(size=xyz.shape).to(device=xyz.device)
+    octree_rests = torch.zeros_like(xyz)
+    octree_blk_istbd = torch.BoolTensor(size=(xyz.shape[0],)).to(device=xyz.device)
+    octree_blkids[...] = 0
+    octree_blk_istbd[...] = True
+    for level in reversed(range(xyz_tile_size_maxlevel+1)):
+        tile_size = tile_size_base * 2**level
+        xyz_tbd = xyz[octree_blk_istbd, ...]
+        blkids, rests = spatial_split(xyz_tbd, tile_size)
+        distinct_blkids, blks = split_by_blkids(blkids, rests)
+        blk_counts = torch.IntTensor([blk.shape[0] for blk in blks]).to(rests.device)
+        octree_distinct_blkids = distinct_blkids[blk_counts < split_thr, ...] if level > 0 else distinct_blkids
+        octree_rests_tbd = octree_rests[octree_blk_istbd, ...]
+        octree_blkids_tbd = octree_blkids[octree_blk_istbd, ...]
+        octree_blk_istbd_ = octree_blk_istbd[octree_blk_istbd]
+        for i in range(octree_distinct_blkids.shape[0]):
+            inblk_idx = (blkids == octree_distinct_blkids[i:i+1, ...]).all(dim=1)
+            octree_blkids_tbd[inblk_idx] = blkids[inblk_idx]
+            octree_rests_tbd[inblk_idx] = rests[inblk_idx]
+            octree_blk_istbd_[inblk_idx] = False
+        octree_blkids[octree_blk_istbd, ...] = octree_blkids_tbd
+        octree_rests[octree_blk_istbd, ...] = octree_rests_tbd
+        octree_blk_istbd[octree_blk_istbd.clone()] = octree_blk_istbd_
+    return octree_blkids, octree_rests

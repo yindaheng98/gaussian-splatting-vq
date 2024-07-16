@@ -5,7 +5,7 @@ import abc
 from plyfile import PlyData, PlyElement
 from .gaussian_model import GaussianModel
 from enum import Enum
-from utils.spatialsplit_utils import spatial_split, spatial_merge, split_by_blkids
+from utils.spatialsplit_utils import spatial_split, spatial_merge, split_by_blkids, spatial_split_octree
 
 
 class Attribute(Enum):
@@ -139,7 +139,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def save_vq_split_ply(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
-        blkids, xyz_rests = spatial_split(self._xyz.detach(), self.xyz_tile_size)
+        blkids, xyz_rests = spatial_split_octree(self._xyz.detach())
         distinct_blkids, xyz_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
             blkids,
             xyz_rests,
