@@ -152,22 +152,19 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".npz")
         lkmeans = getattr(self, self.lkmeans_varname(attr, i))
         print(f"save layerized codebook {path}.")
-        np.savez(path, codebook=lkmeans.cpu().numpy())
-        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".json")
         tree = getattr(self, self.lkmeans_treename(attr, i))
-        with open(tree_path, "w", encoding='utf8') as f:
-            json.dump(tree, f, indent=2)
+        np.savez(path, codebook=lkmeans.cpu().numpy(), tree=np.asarray(tree))
 
     def load_codebook(self, dirpath, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
         super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
         path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".npz")
         data = self.get_data(attr, i)
         print(f"load layerized codebook {path}.")
-        lkmeans = torch.FloatTensor(np.load(path)["codebook"]).to(data.device)
+        svqdata = np.load(path)
+        lkmeans = torch.FloatTensor(svqdata["codebook"]).to(data.device)
+        tree = svqdata["tree"].tolist()
         setattr(self, self.lkmeans_varname(attr, i), lkmeans)
-        tree_path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".json")
-        with open(tree_path, "r", encoding='utf8') as f:
-            setattr(self, self.lkmeans_treename(attr, i), json.load(f))
+        setattr(self, self.lkmeans_treename(attr, i), tree)
 
     def load_codebooks(self, dirpath,
                        log2_clusters_scaling_init,
