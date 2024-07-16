@@ -45,6 +45,7 @@ def quantize(_):
     target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq.ply")
     gaussians = LayeredKMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
+    gaussians.init_clusters_path = os.path.join(args.save, target_reldir)
     gaussians.load_codebooks(
         os.path.join(args.save, target_reldir),
         args.log2_clusters_scaling_init or args.log2_clusters_init,

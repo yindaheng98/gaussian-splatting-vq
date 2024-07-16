@@ -13,6 +13,9 @@ class KMeansGaussianModel(VQGaussianModel):
     def kmeans_varname(self, attr: Attribute, i=0):
         return self._get_name("kmeans", attr, i)
 
+    def kmeans_log2_clusters_varname(self, attr: Attribute, i=0):
+        return f"log2_clusters_{self.kmeans_varname(attr, i)}"
+
     @staticmethod
     def kmeans_batch(log2_clusters, datasize):
         return datasize // 10
@@ -24,11 +27,11 @@ class KMeansGaussianModel(VQGaussianModel):
         print(f"{log2_clusters} bit Kmeans {self.kmeans_varname(attr, i)}. shape: {data.shape}")
         kmeans.fit(data.cpu())
         setattr(self, self.kmeans_varname(attr, i), torch.FloatTensor(kmeans.cluster_centers_).to(data.device))
-        setattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}", log2_clusters)
+        setattr(self, self.kmeans_log2_clusters_varname(attr, i), log2_clusters)
 
     def save_codebook(self, dirpath, attr: Attribute, i=0):
         os.makedirs(dirpath, exist_ok=True)
-        log2_clusters = getattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}")
+        log2_clusters = getattr(self, self.kmeans_log2_clusters_varname(attr, i))
         path = os.path.join(dirpath, self.kmeans_filename(log2_clusters, attr, i) + ".npz")
         kmeans = getattr(self, self.kmeans_varname(attr, i))
         print(f"save codebook {path}.")

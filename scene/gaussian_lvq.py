@@ -131,6 +131,15 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
     def lkmeans_treename(self, attr: Attribute, i=0):
         return self._get_name("lkmeans_tree", attr, i)
 
+    def lkmeans_log2_clusters_init_varname(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans_log2_clusters_init", attr, i)
+
+    def lkmeans_log2_clusters_final_varname(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans_log2_clusters_final", attr, i)
+
+    def lkmeans_assigned_bits_varname(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans_assigned_bits", attr, i)
+
     def build_codebook(self, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
         super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
         kmeans = getattr(self, self.kmeans_varname(attr, i))
@@ -140,20 +149,45 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         lkmeans.fit(data, quant, 2**log2_clusters_final)
         setattr(self, self.lkmeans_varname(attr, i), lkmeans.layerized_kmeans)
         setattr(self, self.lkmeans_treename(attr, i), lkmeans.tree)
-        setattr(self, f"log2_clusters_{self.kmeans_varname(attr, i)}", log2_clusters_init)
-        setattr(self, f"log2_clusters_init_{self.kmeans_varname(attr, i)}", log2_clusters_init)
-        setattr(self, f"log2_clusters_final_{self.kmeans_varname(attr, i)}", log2_clusters_final)
+        setattr(self, self.kmeans_log2_clusters_varname(attr, i), log2_clusters_init)
+        setattr(self, self.lkmeans_log2_clusters_init_varname(attr, i), log2_clusters_init)
+        setattr(self, self.lkmeans_log2_clusters_final_varname(attr, i), log2_clusters_final)
 
     def save_codebook(self, dirpath, attr: Attribute, i=0):
         super().save_codebook(dirpath, attr, i)
         os.makedirs(dirpath, exist_ok=True)
-        log2_clusters_init = getattr(self, f"log2_clusters_init_{self.kmeans_varname(attr, i)}")
-        log2_clusters_final = getattr(self, f"log2_clusters_final_{self.kmeans_varname(attr, i)}")
+        log2_clusters_init = getattr(self, self.lkmeans_log2_clusters_init_varname(attr, i))
+        log2_clusters_final = getattr(self, self.lkmeans_log2_clusters_final_varname(attr, i))
         path = os.path.join(dirpath, self.lkmeans_filename(log2_clusters_init, log2_clusters_final, attr, i) + ".npz")
         lkmeans = getattr(self, self.lkmeans_varname(attr, i))
         print(f"save layerized codebook {path}.")
         tree = getattr(self, self.lkmeans_treename(attr, i))
         np.savez(path, codebook=lkmeans.cpu().numpy(), tree=np.asarray(tree))
+
+    def assign_bits(self, attr: Attribute, i=0):
+        lkmeans = getattr(self, self.lkmeans_varname(attr, i))
+        tree = getattr(self, self.lkmeans_treename(attr, i))
+        kmeans_length = lkmeans.shape[0] - len(tree)
+        assigned = ['']*lkmeans.shape[0]
+        top = [True]*lkmeans.shape[0]
+
+        def append_until_leaf(i, b):
+            assigned[i] = str(b) + assigned[i]
+            if i < kmeans_length:
+                return
+            append_until_leaf(tree[i-kmeans_length][0], b)
+            append_until_leaf(tree[i-kmeans_length][1], b)
+        for l, r in tree:
+            append_until_leaf(l, 0)
+            append_until_leaf(r, 1)
+            top[l] = top[r] = False
+        top_idx = np.where(top)[0]
+        lod0_bitwidth = int(np.ceil(np.log2(len(top_idx))))
+        for b, i in enumerate(top_idx):
+            append_until_leaf(i, format(b, f'0{lod0_bitwidth}b'))
+        setattr(self, self.lkmeans_log2_clusters_init_varname(attr, i), int(np.ceil(np.log2(kmeans_length))))
+        setattr(self, self.lkmeans_log2_clusters_final_varname(attr, i), lod0_bitwidth)
+        setattr(self, self.lkmeans_assigned_bits_varname(attr, i), assigned)
 
     def load_codebook(self, dirpath, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
         super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
@@ -165,6 +199,7 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         tree = svqdata["tree"].tolist()
         setattr(self, self.lkmeans_varname(attr, i), lkmeans)
         setattr(self, self.lkmeans_treename(attr, i), tree)
+        self.assign_bits(attr, i)
 
     def load_codebooks(self, dirpath,
                        log2_clusters_scaling_init,
