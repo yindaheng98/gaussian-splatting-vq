@@ -5,7 +5,7 @@ import abc
 from plyfile import PlyData, PlyElement
 from .gaussian_model import GaussianModel
 from enum import Enum
-from utils.spatialsplit_utils import spatial_split, spatial_merge
+from utils.spatialsplit_utils import spatial_split, spatial_merge, split_by_blkids
 
 
 class Attribute(Enum):
@@ -102,7 +102,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             raise ValueError("Not supported")
         data.requires_grad_(True)
 
-    xyz_tile_size = np.array([4., 4., 4.])
+    xyz_tile_size = np.array([1., 1., 1.])
 
     def save_vq_ply(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -135,6 +135,20 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         elements[:] = list(map(tuple, attributes))
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
+
+    def save_vq_split_ply(self, path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        blkids, xyz_rests = spatial_split(self._xyz.detach(), self.xyz_tile_size)
+        distinct_blkids, xyz_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
+            blkids,
+            xyz_rests,
+            self.quantize(Attribute.features_dc).detach(),
+            self.quantize(Attribute.features_rest).detach(),
+            self.quantize(Attribute.opacity).detach(),
+            self.quantize(Attribute.scaling).detach(),
+            self.quantize(Attribute.rotation).detach())
+        pass
 
     @abc.abstractmethod
     def dequantize(self, attr: Attribute, quant, i=0):
