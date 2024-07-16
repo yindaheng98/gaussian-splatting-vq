@@ -12,6 +12,8 @@ build() {
         --log2-clusters $3 \
         --attribute $4 \
         --index $INDEX
+    else
+    echo skip $PERFIX
     fi
 }
 build_all_attr() {
