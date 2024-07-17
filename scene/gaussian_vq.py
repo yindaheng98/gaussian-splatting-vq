@@ -19,8 +19,11 @@ class Attribute(Enum):
         return self.value
 
 
-def save_vq_ply(path, xyz, scale, rotation, opacities, f_dc, f_rest):
-    normals = np.zeros_like(xyz)
+def save_vq_ply(path, xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest):
+    np.savez(
+        os.path.join(os.path.dirname(path), "tilesinfo.npz"),
+        tile_size=xyz_tile_size, blkids=xyz_blkids)
+    normals = np.zeros_like(xyz_rests)
     dtype_full = [
         ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
         ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -30,11 +33,27 @@ def save_vq_ply(path, xyz, scale, rotation, opacities, f_dc, f_rest):
         ('f_dc', 'i4'),
         ('f_rest', 'i4')]
 
-    elements = np.empty(xyz.shape[0], dtype=dtype_full)
-    attributes = np.concatenate((xyz, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
+    elements = np.empty(xyz_rests.shape[0], dtype=dtype_full)
+    attributes = np.concatenate((xyz_rests, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
     elements[:] = list(map(tuple, attributes))
     el = PlyElement.describe(elements, 'vertex')
     PlyData([el]).write(path)
+
+
+def load_vq_ply(path):
+    plydata = PlyData.read(path)
+
+    xyz_rests = np.stack((np.asarray(plydata.elements[0]["x"]),
+                          np.asarray(plydata.elements[0]["y"]),
+                          np.asarray(plydata.elements[0]["z"])),  axis=1)
+    tileinfo = np.load(os.path.join(os.path.dirname(path), "tilesinfo.npz"))
+    xyz_blkids, xyz_tile_size = tileinfo['blkids'], tileinfo['tile_size']
+    scale = np.asarray(plydata.elements[0]["scale"])
+    rotation = np.asarray(plydata.elements[0]["rot"])
+    opacities = np.asarray(plydata.elements[0]["opacity"])
+    f_dc = np.asarray(plydata.elements[0]["f_dc"])
+    f_rest = np.asarray(plydata.elements[0]["f_rest"])
+    return xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest
 
 
 class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
@@ -126,14 +145,11 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         xyz_blkids, xyz_rests = spatial_split(self._xyz.detach(), self.xyz_tile_size)
-        xyz_blkids, xyz_rests = xyz_blkids.cpu().numpy(), xyz_rests.cpu().numpy()
-        np.savez(
-            os.path.join(os.path.dirname(path), "point_cloud_vq.tilesinfo.npz"),
-            tile_size=self.xyz_tile_size, blkids=xyz_blkids)
-
         save_vq_ply(
             path=path,
-            xyz=xyz_rests,
+            xyz_rests=xyz_rests.cpu().numpy(),
+            xyz_blkids=xyz_blkids.cpu().numpy(),
+            xyz_tile_size=self.xyz_tile_size,
             f_dc=self.quantize(Attribute.features_dc).detach().unsqueeze(-1).cpu().numpy(),
             f_rest=self.quantize(Attribute.features_rest).detach().unsqueeze(-1).cpu().numpy(),
             opacities=self.quantize(Attribute.opacity).detach().unsqueeze(-1).cpu().numpy(),
@@ -163,15 +179,10 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         self.dequantize(attr, self.quantize(attr, i))
 
     def load_vq_ply(self, path):
-        plydata = PlyData.read(path)
-
-        xyz_rests = np.stack((np.asarray(plydata.elements[0]["x"]),
-                              np.asarray(plydata.elements[0]["y"]),
-                              np.asarray(plydata.elements[0]["z"])),  axis=1)
+        xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest = load_vq_ply(path)
         xyz_rests = torch.FloatTensor(xyz_rests).to(self._xyz.device)
-        tileinfo = np.load(os.path.join(os.path.dirname(path), "point_cloud_vq.tilesinfo.npz"))
-        xyz_tile_size, xyz_blkids = tileinfo['tile_size'], tileinfo['blkids']
-        xyz = spatial_merge(torch.from_numpy(xyz_blkids).to(self._xyz.device), xyz_rests, xyz_tile_size)
+        xyz_blkids = torch.from_numpy(xyz_blkids).to(self._xyz.device)
+        xyz = spatial_merge(xyz_blkids, xyz_rests, xyz_tile_size)
         self._xyz.requires_grad_(False)
         mean = torch.abs(self._xyz).mean(dim=0).cpu().numpy()
         mean_dequantized = torch.abs(xyz).mean(dim=0).cpu().numpy()
@@ -184,16 +195,11 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         self._xyz[...] = xyz
         self._xyz.requires_grad_(True)
 
-        scaling = np.asarray(plydata.elements[0]["scale"])
-        rotation = np.asarray(plydata.elements[0]["rot"])
-        opacity = np.asarray(plydata.elements[0]["opacity"])
-        features_dc = np.asarray(plydata.elements[0]["f_dc"])
-        features_rest = np.asarray(plydata.elements[0]["f_rest"])
-        self.dequantize(Attribute.scaling, scaling)
+        self.dequantize(Attribute.scaling, scale)
         self.dequantize(Attribute.rotation, rotation)
-        self.dequantize(Attribute.opacity, opacity)
-        self.dequantize(Attribute.features_dc, features_dc)
-        self.dequantize(Attribute.features_rest, features_rest)
+        self.dequantize(Attribute.opacity, opacities)
+        self.dequantize(Attribute.features_dc, f_dc)
+        self.dequantize(Attribute.features_rest, f_rest)
 
     def test_all(self):
         self.test(Attribute.scaling)
