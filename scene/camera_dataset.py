@@ -38,10 +38,10 @@ class CameraPoseDataset(Dataset):
         history_timestamp = torch.tensor([h.timestamp for h in history])
         history_R = torch.stack([h.R for h in history], dim=0)
         history_T = torch.stack([h.T for h in history], dim=0)
-        history_ = {"timestamp": history_timestamp, "R": history_R, "T": history_T}
         groundtruth = self.poses[idx+self.history_size+self.prediction_stride]
         groundtruth_timestamp = groundtruth.timestamp
         groundtruth_R = groundtruth.R
         groundtruth_T = groundtruth.T
+        history_ = {"history_timestamp": history_timestamp, "R": history_R, "T": history_T, "timestamp": groundtruth_timestamp}
         groundtruth_ = {"timestamp": groundtruth_timestamp, "R": groundtruth_R, "T": groundtruth_T}
         return history_, groundtruth_
