@@ -168,23 +168,23 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         lkmeans = getattr(self, self.lkmeans_varname(attr, i))
         tree = getattr(self, self.lkmeans_treename(attr, i))
         kmeans_length = lkmeans.shape[0] - len(tree)
-        assigned = ['']*lkmeans.shape[0]
+        assigned = [[] for _ in range(lkmeans.shape[0])]
         top = [True]*lkmeans.shape[0]
 
-        def append_until_leaf(i, b):
-            assigned[i] = str(b) + assigned[i]
+        def append_until_leaf(i, bits):
+            assigned[i] = bits + assigned[i]
             if i < kmeans_length:
                 return
-            append_until_leaf(tree[i-kmeans_length][0], b)
-            append_until_leaf(tree[i-kmeans_length][1], b)
+            append_until_leaf(tree[i-kmeans_length][0], bits)
+            append_until_leaf(tree[i-kmeans_length][1], bits)
         for l, r in tree:
-            append_until_leaf(l, 0)
-            append_until_leaf(r, 1)
+            append_until_leaf(l, [0])
+            append_until_leaf(r, [1])
             top[l] = top[r] = False
         top_idx = np.where(top)[0]
         lod0_bitwidth = int(np.ceil(np.log2(len(top_idx))))
         for b, i in enumerate(top_idx):
-            append_until_leaf(i, format(b, f'0{lod0_bitwidth}b'))
+            append_until_leaf(i, [int(bit) for bit in format(b, f'0{lod0_bitwidth}b')])
         setattr(self, self.lkmeans_log2_clusters_init_varname(attr, i), int(np.ceil(np.log2(kmeans_length))))
         setattr(self, self.lkmeans_log2_clusters_final_varname(attr, i), lod0_bitwidth)
         setattr(self, self.lkmeans_assigned_bits_varname(attr, i), assigned)
@@ -217,3 +217,9 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         self.load_codebook(dirpath, log2_clusters_features_dc_init, log2_clusters_features_dc_final, Attribute.features_dc)
         self.load_codebook(dirpath, log2_clusters_features_rest_init, log2_clusters_features_rest_final, Attribute.features_rest)
         self.load_codebook(dirpath, log2_clusters_opacity_init, log2_clusters_opacity_final, Attribute.opacity)
+
+    def quantize(self, attr: Attribute, i=0):
+        pass
+
+    def quantize(self, attr: Attribute, i=0):
+        pass
