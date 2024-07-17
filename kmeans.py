@@ -22,6 +22,7 @@ def build(args):
 
 @subcommand([
     argument("--dst", type=str, required=True, help="The destination dir."),
+    argument("--filename", type=str, default="point_cloud_vq", help="The destination dir."),
     argument("--log2-clusters", type=int, default=16, help="Qualtize by how many clusters."),
     argument("--log2-clusters-scaling", type=int, default=0, help="Qualtize by how many clusters."),
     argument("--log2-clusters-rotation", type=int, default=0, help="Qualtize by how many clusters."),
@@ -44,14 +45,15 @@ def quantize(_):
         args.log2_clusters_opacity or args.log2_clusters)
     gaussians.test_all()
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
-    target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq.ply")
+    target_vq_relpath = os.path.join(target_reldir, args.filename + ".ply")
     gaussians.save_vq_ply(os.path.join(args.dst, target_vq_relpath))
-    target_vq_split_relpath = os.path.join(target_reldir, "point_cloud_vq_split")
+    target_vq_split_relpath = os.path.join(target_reldir, args.filename + "_split")
     gaussians.save_vq_split_ply(os.path.join(args.dst, target_vq_split_relpath))
 
 
 @subcommand([
     argument("--dst", type=str, required=True, help="The destination dir."),
+    argument("--filename", type=str, default="point_cloud_vq_ddrc", help="The destination dir."),
     argument("--log2-clusters", type=int, default=16, help="Qualtize by how many clusters."),
     argument("--log2-clusters-scaling", type=int, default=0, help="Qualtize by how many clusters."),
     argument("--log2-clusters-rotation", type=int, default=0, help="Qualtize by how many clusters."),
@@ -72,13 +74,14 @@ def dequantize(_):
         args.log2_clusters_features_dc or args.log2_clusters,
         args.log2_clusters_features_rest or args.log2_clusters,
         args.log2_clusters_opacity or args.log2_clusters)
-    target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq_ddrc.ply")
+    target_vq_relpath = os.path.join(target_reldir, args.filename + ".ply")
     gaussians.load_vq_ply(os.path.join(args.dst, target_vq_relpath))
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
 
 
 @subcommand([
     argument("--dst", type=str, required=True, help="The destination dir."),
+    argument("--filename", type=str, default="point_cloud_vq", help="The destination dir."),
     argument("--log2-clusters", type=int, default=16, help="Qualtize by how many clusters."),
     argument("--log2-clusters-scaling", type=int, default=0, help="Qualtize by how many clusters."),
     argument("--log2-clusters-rotation", type=int, default=0, help="Qualtize by how many clusters."),
@@ -99,7 +102,7 @@ def dequantize_split(_):
         args.log2_clusters_features_dc or args.log2_clusters,
         args.log2_clusters_features_rest or args.log2_clusters,
         args.log2_clusters_opacity or args.log2_clusters)
-    target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq_split")
+    target_vq_relpath = os.path.join(target_reldir, args.filename + "_split")
     gaussians.load_vq_split_ply(os.path.join(args.dst, target_vq_relpath))
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
 

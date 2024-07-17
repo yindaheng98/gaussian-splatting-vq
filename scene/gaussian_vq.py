@@ -177,6 +177,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         )
 
     def save_vq_split_ply(self, path):
+        os.makedirs(path, exist_ok=True)
         shutil.rmtree(path)
         os.makedirs(path, exist_ok=True)
 
