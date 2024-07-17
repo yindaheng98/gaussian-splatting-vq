@@ -194,8 +194,9 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             blksize = blksizes[i, ...]
             blkid_str = "_".join([str(_) for _ in blkid.cpu().numpy().tolist()])
             blksize_str = "_".join([str(_) for _ in blksize.cpu().numpy().tolist()])
+            name = f"size_{blksize_str}_id_{blkid_str}"
             save_vq_ply(
-                os.path.join(path, f"size_{blksize_str}_id_{blkid_str}.ply"),
+                os.path.join(path, name + ".ply"),
                 xyz=xyz_rest_blks[i].cpu().numpy(),
                 f_dc=f_dc_blks[i].cpu().numpy(),
                 f_rest=f_rest_blks[i].cpu().numpy(),
@@ -203,7 +204,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
                 scale=scale_blks[i].cpu().numpy(),
                 rotation=rotation_blks[i].cpu().numpy(),
             )
-            np.savez_compressed(os.path.join(path, f"size_{blksize_str}_id_{blkid_str}.idx.ply"), idx=item_idx[i].cpu().numpy())
+            np.savez_compressed(os.path.join(path, name + ".npz"), idx=item_idx[i].cpu().numpy())
 
     @abc.abstractmethod
     def dequantize(self, attr: Attribute, quant, i=0):
@@ -237,6 +238,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
     def load_vq_split_ply(self, path):
         xyz_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = [], [], [], [], [], []
+        item_idx_blks = []
         for entry in os.scandir(path):
             find = re.findall(r"^size_([-0-9]+)_([-0-9]+)_([-0-9]+)_id_([-0-9]+)_([-0-9]+)_([-0-9]+).ply$", entry.name)
             if not len(find) == 1 or not len(find[0]) == 6:
@@ -253,17 +255,29 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             opacities_blks.append(opacities)
             scale_blks.append(scale)
             rotation_blks.append(rotation)
+            item_idx_blks.append(np.load(entry.path[:-4] + ".npz")["idx"])
 
-        xyz = torch.concat(xyz_blks, dim=0)
+        item_idx = np.concatenate(item_idx_blks, axis=0)
+        reverse_idx = item_idx.argsort()
+
+        xyz = torch.concat(xyz_blks, dim=0)[reverse_idx, ...]
         self._xyz.requires_grad_(False)
+        mean = torch.abs(self._xyz).mean(dim=0).cpu().numpy()
+        mean_dequantized = torch.abs(xyz).mean(dim=0).cpu().numpy()
+        loss = torch.abs(xyz - self._xyz).mean(dim=0).cpu().numpy()
+        print(f"merge tiles.")
+        print(f"xyz loss:       {loss}")
+        print(f"xyz rel loss:   {loss / mean_dequantized}")
+        print(f"xyz mean:       {mean_dequantized}")
+        print(f"xyz mean shift: {mean - mean_dequantized}")
         self._xyz[...] = xyz
         self._xyz.requires_grad_(True)
 
-        f_dc = np.concatenate(f_dc_blks, axis=0)
-        f_rest = np.concatenate(f_rest_blks, axis=0)
-        opacities = np.concatenate(opacities_blks, axis=0)
-        scale = np.concatenate(scale_blks, axis=0)
-        rotation = np.concatenate(rotation_blks, axis=0)
+        f_dc = np.concatenate(f_dc_blks, axis=0)[reverse_idx]
+        f_rest = np.concatenate(f_rest_blks, axis=0)[reverse_idx]
+        opacities = np.concatenate(opacities_blks, axis=0)[reverse_idx]
+        scale = np.concatenate(scale_blks, axis=0)[reverse_idx]
+        rotation = np.concatenate(rotation_blks, axis=0)[reverse_idx]
 
         self.dequantize(Attribute.scaling, scale)
         self.dequantize(Attribute.rotation, rotation)

@@ -15,12 +15,15 @@ def split_by_blkids(blkids: torch.Tensor, *tensors: torch.Tensor):
     for tensor in tensors:
         assert tensor.shape[0] == tensors[0].shape[0]
     distinct_blkids = blkids.unique(dim=0)
-    tensor_blks = [[None for _ in range(distinct_blkids.shape[0])] for _ in range(len(tensors))]
+    tensor_blks = [[None] * distinct_blkids.shape[0] for _ in range(len(tensors))]
+    item_idx = [None] * distinct_blkids.shape[0]
+    idx = torch.from_numpy(np.asarray(range(blkids.shape[0]))).to(blkids.device)
     for i in range(distinct_blkids.shape[0]):
         inblk_idx = (blkids == distinct_blkids[i:i+1, ...]).all(dim=1)
+        item_idx[i] = idx[inblk_idx]
         for j, tensor in enumerate(tensors):
             tensor_blks[j][i] = tensor[inblk_idx, ...]
-    return distinct_blkids, *tensor_blks
+    return distinct_blkids, item_idx, *tensor_blks
 
 
 def spatial_merge(blkids: torch.Tensor, rests: torch.Tensor, xyz_tile_size):
@@ -43,7 +46,7 @@ def spatial_split_octree(xyz: torch.Tensor, xyz_tile_size_base=[1, 1, 1], xyz_ti
         tile_size = tile_size_base * 2**level
         xyz_tbd = xyz[octree_blk_istbd, ...]
         blkids, rests = spatial_split(xyz_tbd, tile_size)
-        distinct_blkids, blks = split_by_blkids(blkids, rests)
+        distinct_blkids, _, blks = split_by_blkids(blkids, rests)
         blk_counts = torch.IntTensor([blk.shape[0] for blk in blks]).to(rests.device)
         octree_distinct_blkids = distinct_blkids[blk_counts < split_thr, ...] if level > 0 else distinct_blkids
         octree_rests_tbd = octree_rests[octree_blk_istbd, ...]
