@@ -181,7 +181,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         os.makedirs(path, exist_ok=True)
 
         blkids, blksizes, xyz_rests = spatial_split_octree(self._xyz.detach())
-        distinct_blkids, xyz_rest_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
+        distinct_blkids, item_idx, xyz_rest_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
             blkids,
             xyz_rests,
             self.quantize(Attribute.features_dc).detach(),
@@ -203,6 +203,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
                 scale=scale_blks[i].cpu().numpy(),
                 rotation=rotation_blks[i].cpu().numpy(),
             )
+            np.savez_compressed(os.path.join(path, f"size_{blksize_str}_id_{blkid_str}.idx.ply"), idx=item_idx[i].cpu().numpy())
 
     @abc.abstractmethod
     def dequantize(self, attr: Attribute, quant, i=0):
