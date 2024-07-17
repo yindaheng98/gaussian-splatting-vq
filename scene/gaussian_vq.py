@@ -34,7 +34,7 @@ def save_vq_ply(path, xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opa
         ('f_rest', 'i4')]
 
     elements = np.empty(xyz_rests.shape[0], dtype=dtype_full)
-    attributes = np.concatenate((xyz_rests, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
+    attributes = np.concatenate((xyz_rests, normals, np.stack((scale, rotation, opacities, f_dc, f_rest), axis=-1)), axis=1)
     elements[:] = list(map(tuple, attributes))
     el = PlyElement.describe(elements, 'vertex')
     PlyData([el]).write(path)
@@ -139,7 +139,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             raise ValueError("Not supported")
         data.requires_grad_(True)
 
-    xyz_tile_size = np.array([1., 1., 1.])
+    xyz_tile_size = np.array([4, 4, 4])
 
     def save_vq_ply(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -150,11 +150,11 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             xyz_rests=xyz_rests.cpu().numpy(),
             xyz_blkids=xyz_blkids.cpu().numpy(),
             xyz_tile_size=self.xyz_tile_size,
-            f_dc=self.quantize(Attribute.features_dc).detach().unsqueeze(-1).cpu().numpy(),
-            f_rest=self.quantize(Attribute.features_rest).detach().unsqueeze(-1).cpu().numpy(),
-            opacities=self.quantize(Attribute.opacity).detach().unsqueeze(-1).cpu().numpy(),
-            scale=self.quantize(Attribute.scaling).detach().unsqueeze(-1).cpu().numpy(),
-            rotation=self.quantize(Attribute.rotation).detach().unsqueeze(-1).cpu().numpy(),
+            f_dc=self.quantize(Attribute.features_dc).detach().cpu().numpy(),
+            f_rest=self.quantize(Attribute.features_rest).detach().cpu().numpy(),
+            opacities=self.quantize(Attribute.opacity).detach().cpu().numpy(),
+            scale=self.quantize(Attribute.scaling).detach().cpu().numpy(),
+            rotation=self.quantize(Attribute.rotation).detach().cpu().numpy(),
         )
 
     def save_vq_split_ply(self, path):
