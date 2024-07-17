@@ -6,6 +6,7 @@ from plyfile import PlyData, PlyElement
 from .gaussian_model import GaussianModel
 from enum import Enum
 import shutil
+import re
 from utils.spatialsplit_utils import spatial_split, spatial_merge, split_by_blkids, spatial_split_octree
 
 
@@ -226,6 +227,42 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         print(f"xyz mean shift: {mean - mean_dequantized}")
         self._xyz[...] = xyz
         self._xyz.requires_grad_(True)
+
+        self.dequantize(Attribute.scaling, scale)
+        self.dequantize(Attribute.rotation, rotation)
+        self.dequantize(Attribute.opacity, opacities)
+        self.dequantize(Attribute.features_dc, f_dc)
+        self.dequantize(Attribute.features_rest, f_rest)
+
+    def load_vq_split_ply(self, path):
+        xyz_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = [], [], [], [], [], []
+        for entry in os.scandir(path):
+            find = re.findall(r"^size_([-0-9]+)_([-0-9]+)_([-0-9]+)_id_([-0-9]+)_([-0-9]+)_([-0-9]+).ply$", entry.name)
+            if not len(find) == 1 or not len(find[0]) == 6:
+                continue
+            tile_size = [int(i) for i in find[0][0:3]]
+            blkid = [int(i) for i in find[0][3:6]]
+            xyz_rests, scale, rotation, opacities, f_dc, f_rest = load_vq_ply(entry.path)
+            xyz_rests = torch.FloatTensor(xyz_rests).to(self._xyz.device)
+            xyz_blkids = torch.from_numpy(np.asarray([blkid])).to(self._xyz.device)
+            xyz = spatial_merge(xyz_blkids, xyz_rests, tile_size)
+            xyz_blks.append(xyz)
+            f_dc_blks.append(f_dc)
+            f_rest_blks.append(f_rest)
+            opacities_blks.append(opacities)
+            scale_blks.append(scale)
+            rotation_blks.append(rotation)
+
+        xyz = torch.concat(xyz_blks, dim=0)
+        self._xyz.requires_grad_(False)
+        self._xyz[...] = xyz
+        self._xyz.requires_grad_(True)
+
+        f_dc = np.concatenate(f_dc_blks, axis=0)
+        f_rest = np.concatenate(f_rest_blks, axis=0)
+        opacities = np.concatenate(opacities_blks, axis=0)
+        scale = np.concatenate(scale_blks, axis=0)
+        rotation = np.concatenate(rotation_blks, axis=0)
 
         self.dequantize(Attribute.scaling, scale)
         self.dequantize(Attribute.rotation, rotation)
