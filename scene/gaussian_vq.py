@@ -59,13 +59,18 @@ def load_vq_ply(path):
     xyz_rests = np.stack((np.asarray(plydata.elements[0]["x"]),
                           np.asarray(plydata.elements[0]["y"]),
                           np.asarray(plydata.elements[0]["z"])),  axis=1)
-    tileinfo = np.load(os.path.join(os.path.dirname(path), "tilesinfo.npz"))
-    xyz_blkids, xyz_tile_size = tileinfo['blkids'], tileinfo['tile_size']
     scale = np.asarray(plydata.elements[0]["scale"])
     rotation = np.asarray(plydata.elements[0]["rot"])
     opacities = np.asarray(plydata.elements[0]["opacity"])
     f_dc = np.asarray(plydata.elements[0]["f_dc"])
     f_rest = np.asarray(plydata.elements[0]["f_rest"])
+    return xyz_rests, scale, rotation, opacities, f_dc, f_rest
+
+
+def load_vq_ply_with_tileinfo(path):
+    tileinfo = np.load(os.path.join(os.path.dirname(path), "tilesinfo.npz"))
+    xyz_blkids, xyz_tile_size = tileinfo['blkids'], tileinfo['tile_size']
+    xyz_rests, scale, rotation, opacities, f_dc, f_rest = load_vq_ply(path)
     return xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest
 
 
@@ -206,7 +211,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         self.dequantize(attr, self.quantize(attr, i))
 
     def load_vq_ply(self, path):
-        xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest = load_vq_ply(path)
+        xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest = load_vq_ply_with_tileinfo(path)
         xyz_rests = torch.FloatTensor(xyz_rests).to(self._xyz.device)
         xyz_blkids = torch.from_numpy(xyz_blkids).to(self._xyz.device)
         xyz = spatial_merge(xyz_blkids, xyz_rests, xyz_tile_size)
