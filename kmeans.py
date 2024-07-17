@@ -34,6 +34,7 @@ def quantize(_):
     target_reldir = os.path.join("point_cloud", f"iteration_{args.iteration}")
     target_relpath = os.path.join(target_reldir, "point_cloud.ply")
     target_vq_relpath = os.path.join(target_reldir, "point_cloud_vq.ply")
+    target_vq_split_relpath = os.path.join(target_reldir, "point_cloud_vq_split")
     gaussians = KMeansGaussianModel(sh_degree=args.sh_degree)
     gaussians.load_ply(os.path.join(args.src, target_relpath))
     gaussians.load_codebooks(
@@ -46,6 +47,7 @@ def quantize(_):
     gaussians.test_all()
     gaussians.save_ply(os.path.join(args.dst, target_relpath))
     gaussians.save_vq_ply(os.path.join(args.dst, target_vq_relpath))
+    gaussians.save_vq_split_ply(os.path.join(args.dst, target_vq_split_relpath))
 
 
 @subcommand([

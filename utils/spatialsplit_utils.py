@@ -3,7 +3,7 @@ import numpy as np
 
 
 def spatial_split(xyz: torch.Tensor, xyz_tile_size):
-    tile_size = torch.FloatTensor(xyz_tile_size[:3]).to(xyz.device)
+    tile_size = torch.Tensor(xyz_tile_size[:3]).to(xyz.device)
     floors = (xyz/tile_size.unsqueeze(0)).floor()
     blkids = floors.type(torch.int32)
     print("spatial_split", xyz_tile_size, "blks", blkids.unique(dim=0).shape[0], blkids.max(dim=0).values-blkids.min(dim=0).values)
@@ -25,15 +25,16 @@ def split_by_blkids(blkids: torch.Tensor, *tensors: torch.Tensor):
 
 def spatial_merge(blkids: torch.Tensor, rests: torch.Tensor, xyz_tile_size):
     print("spatial_merge", xyz_tile_size, "blks", "blks", blkids.max(dim=0).values-blkids.min(dim=0).values)
-    tile_size = torch.FloatTensor(xyz_tile_size[:3]).to(rests.device)
+    tile_size = torch.Tensor(xyz_tile_size[:3]).to(rests.device)
     floors = blkids.type(torch.float32)
     data = floors*tile_size.unsqueeze(0)+rests
     return data
 
 
-def spatial_split_octree(xyz: torch.Tensor, xyz_tile_size_base=[1., 1., 1.], xyz_tile_size_maxlevel=4, split_thr=5e3):
-    tile_size_base = np.asarray(xyz_tile_size_base[:3])
+def spatial_split_octree(xyz: torch.Tensor, xyz_tile_size_base=[1, 1, 1], xyz_tile_size_maxlevel=4, split_thr=5e3):
+    tile_size_base = torch.from_numpy(np.asarray(xyz_tile_size_base[:3])).to(xyz.device)
     octree_blkids = torch.IntTensor(size=xyz.shape).to(device=xyz.device)
+    octree_blksizes = torch.IntTensor(size=xyz.shape).to(device=xyz.device)
     octree_rests = torch.zeros_like(xyz)
     octree_blk_istbd = torch.BoolTensor(size=(xyz.shape[0],)).to(device=xyz.device)
     octree_blkids[...] = 0
@@ -47,13 +48,16 @@ def spatial_split_octree(xyz: torch.Tensor, xyz_tile_size_base=[1., 1., 1.], xyz
         octree_distinct_blkids = distinct_blkids[blk_counts < split_thr, ...] if level > 0 else distinct_blkids
         octree_rests_tbd = octree_rests[octree_blk_istbd, ...]
         octree_blkids_tbd = octree_blkids[octree_blk_istbd, ...]
+        octree_blksizes_tbd = octree_blksizes[octree_blk_istbd, ...]
         octree_blk_istbd_ = octree_blk_istbd[octree_blk_istbd]
         for i in range(octree_distinct_blkids.shape[0]):
             inblk_idx = (blkids == octree_distinct_blkids[i:i+1, ...]).all(dim=1)
             octree_blkids_tbd[inblk_idx] = blkids[inblk_idx]
+            octree_blksizes_tbd[inblk_idx, ...] = tile_size
             octree_rests_tbd[inblk_idx] = rests[inblk_idx]
             octree_blk_istbd_[inblk_idx] = False
         octree_blkids[octree_blk_istbd, ...] = octree_blkids_tbd
+        octree_blksizes[octree_blk_istbd, ...] = octree_blksizes_tbd
         octree_rests[octree_blk_istbd, ...] = octree_rests_tbd
         octree_blk_istbd[octree_blk_istbd.clone()] = octree_blk_istbd_
-    return octree_blkids, octree_rests
+    return octree_blkids, octree_blksizes, octree_rests

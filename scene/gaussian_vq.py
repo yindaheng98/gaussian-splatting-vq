@@ -19,11 +19,8 @@ class Attribute(Enum):
         return self.value
 
 
-def save_vq_ply(path, xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest):
-    np.savez(
-        os.path.join(os.path.dirname(path), "tilesinfo.npz"),
-        tile_size=xyz_tile_size, blkids=xyz_blkids)
-    normals = np.zeros_like(xyz_rests)
+def save_vq_ply(path, xyz, scale, rotation, opacities, f_dc, f_rest):
+    normals = np.zeros_like(xyz)
     dtype_full = [
         ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
         ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -33,11 +30,26 @@ def save_vq_ply(path, xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opa
         ('f_dc', 'i4'),
         ('f_rest', 'i4')]
 
-    elements = np.empty(xyz_rests.shape[0], dtype=dtype_full)
-    attributes = np.concatenate((xyz_rests, normals, np.stack((scale, rotation, opacities, f_dc, f_rest), axis=-1)), axis=1)
+    elements = np.empty(xyz.shape[0], dtype=dtype_full)
+    attributes = np.concatenate((xyz, normals, np.stack((scale, rotation, opacities, f_dc, f_rest), axis=-1)), axis=1)
     elements[:] = list(map(tuple, attributes))
     el = PlyElement.describe(elements, 'vertex')
     PlyData([el]).write(path)
+
+
+def save_vq_ply_with_tileinfo(path, xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest):
+    np.savez(
+        os.path.join(os.path.dirname(path), "tilesinfo.npz"),
+        tile_size=xyz_tile_size, blkids=xyz_blkids)
+    save_vq_ply(
+        path=path,
+        xyz=xyz_rests,
+        scale=scale,
+        rotation=rotation,
+        opacities=opacities,
+        f_dc=f_dc,
+        f_rest=f_rest,
+    )
 
 
 def load_vq_ply(path):
@@ -145,7 +157,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         xyz_blkids, xyz_rests = spatial_split(self._xyz.detach(), self.xyz_tile_size)
-        save_vq_ply(
+        save_vq_ply_with_tileinfo(
             path=path,
             xyz_rests=xyz_rests.cpu().numpy(),
             xyz_blkids=xyz_blkids.cpu().numpy(),
@@ -158,10 +170,10 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         )
 
     def save_vq_split_ply(self, path):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.makedirs(path, exist_ok=True)
 
-        blkids, xyz_rests = spatial_split_octree(self._xyz.detach())
-        distinct_blkids, xyz_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
+        blkids, blksizes, xyz_rests = spatial_split_octree(self._xyz.detach())
+        distinct_blkids, xyz_rest_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
             blkids,
             xyz_rests,
             self.quantize(Attribute.features_dc).detach(),
@@ -169,7 +181,20 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             self.quantize(Attribute.opacity).detach(),
             self.quantize(Attribute.scaling).detach(),
             self.quantize(Attribute.rotation).detach())
-        pass
+        for i in range(distinct_blkids.shape[0]):
+            blkid = distinct_blkids[i, ...]
+            blksize = blksizes[i, ...]
+            blkid_str = "_".join([str(_) for _ in blkid.cpu().numpy().tolist()])
+            blksize_str = "_".join([str(_) for _ in blksize.cpu().numpy().tolist()])
+            save_vq_ply(
+                os.path.join(path, f"size_{blksize_str}_id_{blkid_str}.ply"),
+                xyz=xyz_rest_blks[i].cpu().numpy(),
+                f_dc=f_dc_blks[i].cpu().numpy(),
+                f_rest=f_rest_blks[i].cpu().numpy(),
+                opacities=opacities_blks[i].cpu().numpy(),
+                scale=scale_blks[i].cpu().numpy(),
+                rotation=rotation_blks[i].cpu().numpy(),
+            )
 
     @abc.abstractmethod
     def dequantize(self, attr: Attribute, quant, i=0):
