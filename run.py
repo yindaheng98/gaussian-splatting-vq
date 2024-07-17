@@ -20,14 +20,20 @@ class Camera(NamedTuple):
 
 
 def predict_viewport(pose_history, fovx: float, fovy: float, width: int, height: int):
-    return Camera(pose=pose_history[-1], fovx=fovx, fovy=fovy, width=width, height=height)
+    return Camera(
+        pose=Pose(
+            timestamp=pose_history["timestamp"][-1],
+            R=pose_history["R"][-1, ...],
+            T=pose_history["T"][-1, ...]),
+        fovx=fovx, fovy=fovy, width=width, height=height)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    camerapose_dataset = CameraPoseDataset(args.viewport)
-    for camera in camerapose_dataset:
-        print(camera)
+    pose_dataset = CameraPoseDataset(args.viewport)
+    for pose_history, pose_groundtruth in pose_dataset:
+        prediction_viewport = predict_viewport(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        print(prediction_viewport)
 
 
 # TODO: 渲染预测视角处的低清图
