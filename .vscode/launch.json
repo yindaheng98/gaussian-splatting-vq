@@ -331,6 +331,18 @@
             ]
         },
         {
+            "name": "run",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--viewport",
+                "saved_data/test.txt",
+            ]
+        },
+        {
             "name": "ply23dgs",
             "type": "debugpy",
             "request": "launch",
