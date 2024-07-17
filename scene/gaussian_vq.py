@@ -181,21 +181,18 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         os.makedirs(path, exist_ok=True)
 
         blkids, blksizes, xyz_rests = spatial_split_octree(self._xyz.detach())
-        # self._xyz.detach()-(blkids.type(torch.float32)+xyz_rests)*blksizes # debug
-        distinct_blkids, item_idx, blksize_blks, xyz_rest_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
-            blkids,
-            blksizes,
+        blkidsizes = torch.concat([blkids, blksizes], dim=1)
+        distinct_blkidsizes, item_idx, xyz_rest_blks, f_dc_blks, f_rest_blks, opacities_blks, scale_blks, rotation_blks = split_by_blkids(
+            blkidsizes,
             xyz_rests,
             self.quantize(Attribute.features_dc).detach(),
             self.quantize(Attribute.features_rest).detach(),
             self.quantize(Attribute.opacity).detach(),
             self.quantize(Attribute.scaling).detach(),
             self.quantize(Attribute.rotation).detach())
-        distinct_blksizes = torch.concat([blksize[0:1, ...] for blksize in blksize_blks], dim=0)
-        # distinct_blksizes = torch.concat([blksize.unique(dim=0) for blksize in blksize_blks], dim=0) # something wrong
-        for i in range(distinct_blkids.shape[0]):
-            blkid = distinct_blkids[i, ...]
-            blksize = distinct_blksizes[i, ...]
+        for i in range(distinct_blkidsizes.shape[0]):
+            blkid = distinct_blkidsizes[i, :blkids.shape[1]]
+            blksize = distinct_blkidsizes[i, blkids.shape[1]:]
             blkid_str = "_".join([str(_) for _ in blkid.cpu().numpy().tolist()])
             blksize_str = "_".join([str(_) for _ in blksize.cpu().numpy().tolist()])
             name = f"size_{blksize_str}_id_{blkid_str}"
