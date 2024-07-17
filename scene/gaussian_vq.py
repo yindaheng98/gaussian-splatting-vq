@@ -19,6 +19,24 @@ class Attribute(Enum):
         return self.value
 
 
+def save_vq_ply(path, xyz, scale, rotation, opacities, f_dc, f_rest):
+    normals = np.zeros_like(xyz)
+    dtype_full = [
+        ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
+        ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
+        ('scale', 'i4'),
+        ('rot', 'i4'),
+        ('opacity', 'i4'),
+        ('f_dc', 'i4'),
+        ('f_rest', 'i4')]
+
+    elements = np.empty(xyz.shape[0], dtype=dtype_full)
+    attributes = np.concatenate((xyz, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
+    elements[:] = list(map(tuple, attributes))
+    el = PlyElement.describe(elements, 'vertex')
+    PlyData([el]).write(path)
+
+
 class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
     def _get_filename(self, method, log2_clusters: int, attr: Attribute, i=0):
@@ -113,28 +131,15 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             os.path.join(os.path.dirname(path), "point_cloud_vq.tilesinfo.npz"),
             tile_size=self.xyz_tile_size, blkids=xyz_blkids)
 
-        xyz = self._xyz.detach().cpu().numpy()
-        normals = np.zeros_like(xyz)
-        f_dc = self.quantize(Attribute.features_dc).detach().unsqueeze(-1).cpu().numpy()
-        f_rest = self.quantize(Attribute.features_rest).detach().unsqueeze(-1).cpu().numpy()
-        opacities = self.quantize(Attribute.opacity).detach().unsqueeze(-1).cpu().numpy()
-        scale = self.quantize(Attribute.scaling).detach().unsqueeze(-1).cpu().numpy()
-        rotation = self.quantize(Attribute.rotation).detach().unsqueeze(-1).cpu().numpy()
-
-        dtype_full = [
-            ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
-            ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
-            ('scale', 'i4'),
-            ('rot', 'i4'),
-            ('opacity', 'i4'),
-            ('f_dc', 'i4'),
-            ('f_rest', 'i4')]
-
-        elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz_rests, normals, scale, rotation, opacities, f_dc, f_rest), axis=1)
-        elements[:] = list(map(tuple, attributes))
-        el = PlyElement.describe(elements, 'vertex')
-        PlyData([el]).write(path)
+        save_vq_ply(
+            path=path,
+            xyz=xyz_rests,
+            f_dc=self.quantize(Attribute.features_dc).detach().unsqueeze(-1).cpu().numpy(),
+            f_rest=self.quantize(Attribute.features_rest).detach().unsqueeze(-1).cpu().numpy(),
+            opacities=self.quantize(Attribute.opacity).detach().unsqueeze(-1).cpu().numpy(),
+            scale=self.quantize(Attribute.scaling).detach().unsqueeze(-1).cpu().numpy(),
+            rotation=self.quantize(Attribute.rotation).detach().unsqueeze(-1).cpu().numpy(),
+        )
 
     def save_vq_split_ply(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
