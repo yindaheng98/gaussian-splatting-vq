@@ -58,6 +58,9 @@ def quantize(_):
         args.log2_clusters_features_rest_final or args.log2_clusters_final,
         args.log2_clusters_opacity_init or args.log2_clusters_init,
         args.log2_clusters_opacity_final or args.log2_clusters_final)
+    gaussians.test_all()
+    gaussians.save_ply(os.path.join(args.dst, target_relpath))
+    gaussians.save_vq_ply(os.path.join(args.dst, target_vq_relpath))
 
 
 if __name__ == "__main__":

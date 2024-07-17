@@ -140,6 +140,12 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
     def lkmeans_assigned_bits_varname(self, attr: Attribute, i=0):
         return self._get_name("lkmeans_assigned_bits", attr, i)
 
+    def lkmeans_assigned_dict_varname(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans_assigned_dict", attr, i)
+
+    def lkmeans_assigned_ints_varname(self, attr: Attribute, i=0):
+        return self._get_name("lkmeans_assigned_ints", attr, i)
+
     def build_codebook(self, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
         super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
         kmeans = getattr(self, self.kmeans_varname(attr, i))
@@ -171,23 +177,28 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         assigned = [[] for _ in range(lkmeans.shape[0])]
         top = [True]*lkmeans.shape[0]
 
-        def append_until_leaf(i, bits):
-            assigned[i] = bits + assigned[i]
-            if i < kmeans_length:
+        def append_until_leaf(k, bits):
+            assigned[k] = bits + assigned[k]
+            if k < kmeans_length:
                 return
-            append_until_leaf(tree[i-kmeans_length][0], bits)
-            append_until_leaf(tree[i-kmeans_length][1], bits)
+            append_until_leaf(tree[k-kmeans_length][0], bits)
+            append_until_leaf(tree[k-kmeans_length][1], bits)
         for l, r in tree:
             append_until_leaf(l, [0])
             append_until_leaf(r, [1])
             top[l] = top[r] = False
         top_idx = np.where(top)[0]
         lod0_bitwidth = int(np.ceil(np.log2(len(top_idx))))
-        for b, i in enumerate(top_idx):
-            append_until_leaf(i, [int(bit) for bit in format(b, f'0{lod0_bitwidth}b')])
+        for b, j in enumerate(top_idx):
+            append_until_leaf(j, [int(bit) for bit in format(b, f'0{lod0_bitwidth}b')])
         setattr(self, self.lkmeans_log2_clusters_init_varname(attr, i), int(np.ceil(np.log2(kmeans_length))))
         setattr(self, self.lkmeans_log2_clusters_final_varname(attr, i), lod0_bitwidth)
         setattr(self, self.lkmeans_assigned_bits_varname(attr, i), assigned)
+        print(attr, "max assigned bits", max([len(bits)for bits in assigned]))
+        assigned_dict = {''.join([str(bit) for bit in bits]): j for j, bits in enumerate(assigned)}
+        setattr(self, self.lkmeans_assigned_dict_varname(attr, i), assigned_dict)
+        assigned_ints = np.asarray([sum([bit*2**j for j, bit in enumerate(assigned[k])]) for k in range(kmeans_length)])
+        setattr(self, self.lkmeans_assigned_ints_varname(attr, i), assigned_ints)
 
     def load_codebook(self, dirpath, log2_clusters_init: int, log2_clusters_final: int, attr: Attribute, i=0):
         super().load_codebook(self.init_clusters_path, log2_clusters_init, attr, i)
@@ -218,8 +229,18 @@ class LayeredKMeansGaussianModel(KMeansGaussianModel):
         self.load_codebook(dirpath, log2_clusters_features_rest_init, log2_clusters_features_rest_final, Attribute.features_rest)
         self.load_codebook(dirpath, log2_clusters_opacity_init, log2_clusters_opacity_final, Attribute.opacity)
 
+    def test(self, attr: Attribute, i=0):
+        self.dequantize(attr, self.quantize(attr, i))
+
+    def test_all(self):
+        self.test(Attribute.scaling)
+        self.test(Attribute.rotation)
+        self.test(Attribute.opacity)
+        self.test(Attribute.features_dc)
+        self.test(Attribute.features_rest)
+
     def quantize(self, attr: Attribute, i=0):
         pass
 
-    def quantize(self, attr: Attribute, i=0):
+    def dequantize(self, attr: Attribute, i=0):
         pass
