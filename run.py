@@ -21,6 +21,7 @@ parser.add_argument("--history-size", type=int, default=15)
 parser.add_argument("--prediction-stride", type=int, default=5)
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
+parser.add_argument("--max-frame", type=int, default=30)
 
 
 class Camera(NamedTuple):
@@ -95,14 +96,26 @@ def show3images(distorted_image, reference_image, warpedref_image):
 videoout = None
 
 
-def save2images(distorted_image, warpedref_image):
+def save2video(distorted_image, warpedref_image):
     import cv2
     frame = torch.concat((distorted_image, warpedref_image), dim=1).permute(1, 2, 0)
-    height, width, _ = frame.shape
+    frame_uint8 = (frame[..., [2, 1, 0]].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
+    height, width, _ = frame_uint8.shape
     global videoout
     if videoout is None:
-        videoout = cv2.VideoWriter('output.mp4', -1, 60, (width, height))
+        videoout = cv2.VideoWriter('output/run.mp4', -1, 60, (width, height))
         videoout.write((frame.clamp(0, 1) * 255).type(torch.uint8).cpu().numpy())
+
+
+def save2images(distorted_image, warpedref_image, n_frame, folder="output/run"):
+    os.makedirs(folder, exist_ok=True)
+    import cv2
+    frame = torch.concat((distorted_image, warpedref_image), dim=1).permute(1, 2, 0)
+    frame_uint8 = (frame[..., [2, 1, 0]].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
+    i = 1
+    while os.path.isfile(os.path.join(folder, f"frame{n_frame}_{i}.png")):
+        i += 1
+    cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{i}.png"), frame_uint8)
 
 
 if __name__ == "__main__":
@@ -113,11 +126,15 @@ if __name__ == "__main__":
     frame_stride = 1/args.fps
     last_timestamp = None
     last_frame = None
-    frame = 1
+    frame = 0
     server_gaussians = GaussianModel(args.sh_degree)
     for pose_history, pose_groundtruth in pose_dataset:
         timestamp = pose_history["timestamp"]
         if last_timestamp is None or timestamp - last_timestamp > frame_stride:
+            frame = frame + 1
+            last_timestamp = timestamp
+            if frame > args.max_frame:
+                break
             print(f"{timestamp:.4f}", "frame", frame, "loading")
             prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
@@ -125,9 +142,7 @@ if __name__ == "__main__":
             frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
             server_gaussians.load_ply(path=frame_ply)
             reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
-            last_timestamp = timestamp
-            frame = frame + 1
-        print(f"{timestamp:.4f}", "render frame", frame)
+        print(f"{timestamp:.4f}", "frame", frame, "rendering")
         groundtruth_camera = Camera(
             pose=Pose(
                 timestamp=timestamp,
@@ -137,8 +152,11 @@ if __name__ == "__main__":
         distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
         warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
         # show3images(distorted_image, reference_image, warpedref_image)  # debug
-        save2images(distorted_image, warpedref_image)
+        save2video(distorted_image, warpedref_image)  # debug
+        # save2images(distorted_image, warpedref_image, frame)  # debug
 
+    if videoout is not None:
+        videoout.release()
 
 # TODO: 渲染预测视角处的低清图
 # TODO: 读取带宽数据
