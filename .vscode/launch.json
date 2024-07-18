@@ -339,7 +339,7 @@
             "justMyCode": false,
             "args": [
                 "--cameras",
-                "saved_data/test.txt",
+                "saved_data/00016.txt",
                 "--video",
                 "output/coffee_martini",
                 "--sh-degree",
