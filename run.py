@@ -12,8 +12,8 @@ from warping import reconstrucion, projection, warp
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
-parser.add_argument("--fovx", type=float, default=fov2focal(876.90487504022, 1600), help="Camera fov x axis.")
-parser.add_argument("--fovy", type=float, default=fov2focal(875.13605328243, 1200), help="Camera fov y axis.")
+parser.add_argument("--fovx", type=float, default=1.473723552659884, help="Camera fov x axis.")
+parser.add_argument("--fovy", type=float, default=1.1949305624439863, help="Camera fov y axis.")
 parser.add_argument("--width", type=float, default=1600, help="Camera width.")
 parser.add_argument("--height", type=float, default=1200, help="Camera height.")
 parser.add_argument("--buffersize", type=int, default=10, help="Camera buffer size.")
