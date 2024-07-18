@@ -89,11 +89,11 @@ def show3images(distorted_image, reference_image, warpedref_image):
     fig = plt.figure(figsize=(12, 4))
     axs = fig.subplots(ncols=3, nrows=1)
     axs[0].set_title('distorted image')
-    axs[0].imshow(distorted_image.permute(1, 2, 0).cpu().numpy())
+    axs[0].imshow(distorted_image.clamp(0, 1).permute(1, 2, 0).cpu().numpy())
     axs[1].set_title('reference image')
-    axs[1].imshow(reference_image.permute(1, 2, 0).cpu().numpy())
+    axs[1].imshow(reference_image.clamp(0, 1).permute(1, 2, 0).cpu().numpy())
     axs[2].set_title('warped image')
-    axs[2].imshow(warpedref_image.permute(1, 2, 0).cpu().numpy())
+    axs[2].imshow(warpedref_image.clamp(0, 1).permute(1, 2, 0).cpu().numpy())
     fig.tight_layout(pad=5)
     plt.show()
 
@@ -109,14 +109,16 @@ if __name__ == "__main__":
     frame = 1
     for pose_history, pose_groundtruth in pose_dataset:
         timestamp = pose_history["timestamp"]
-        if last_timestamp is not None and timestamp - last_timestamp < frame_stride:
-            continue
-        prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-        frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
-        n_iter = searchForMaxIteration(frame_folder)
-        frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
-        server_gaussians = load_frame(path=frame_ply, sh_degree=args.sh_degree)
-        reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+        if last_timestamp is None or timestamp - last_timestamp > frame_stride:
+            print("loading frame", frame)
+            prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+            frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
+            n_iter = searchForMaxIteration(frame_folder)
+            frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
+            server_gaussians = load_frame(path=frame_ply, sh_degree=args.sh_degree)
+            reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+            last_timestamp = timestamp
+            frame = frame + 1
         groundtruth_camera = Camera(
             pose=Pose(
                 timestamp=timestamp,
@@ -126,8 +128,6 @@ if __name__ == "__main__":
         distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
         warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
         show3images(distorted_image, reference_image, warpedref_image)
-        last_timestamp = timestamp
-        frame = frame + 1
 
 
 # TODO: 渲染预测视角处的低清图
