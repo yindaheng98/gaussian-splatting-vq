@@ -7,9 +7,10 @@ from gaussian_renderer import render, GaussianModel
 from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
+from warping import reconstrucion, projection, warp
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--viewport", type=str, required=True, help="Path to the camera pose.")
+parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
 parser.add_argument("--fovx", type=float, default=888, help="Camera fov x axis.")
 parser.add_argument("--fovy", type=float, default=888, help="Camera fov y axis.")
 parser.add_argument("--width", type=float, default=1600, help="Camera width.")
@@ -30,7 +31,7 @@ class Camera(NamedTuple):
     height: int
 
 
-def predict_viewport(pose_history, fovx: float, fovy: float, width: int, height: int):
+def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: int):
     return Camera(
         pose=Pose(
             timestamp=pose_history["history_timestamp"][-1],
@@ -59,10 +60,35 @@ def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelinePar
         return rendering, depth
 
 
+def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
+    K = torch.tensor([
+        [camera.fovx, 0, camera.width/2],
+        [0, camera.fovy, camera.height/2],
+        [0, 0, 1]
+    ])
+    R_c2w, T_c2w = camera.pose.R, camera.pose.T
+    xyz = reconstrucion(K, R_c2w, T_c2w, depth)
+    K_r = torch.tensor([
+        [camera.fovx, 0, camera.width/2],
+        [0, camera.fovy, camera.height/2],
+        [0, 0, 1]
+    ])
+    K_r = torch.tensor([
+        [camera_ref.fovx, 0, camera_ref.width/2],
+        [0, camera_ref.fovy, camera_ref.height/2],
+        [0, 0, 1]
+    ])
+    R_r, t_r = camera_ref.pose.R, camera_ref.pose.T
+    uv, z = projection(K_r, R_r, t_r, xyz)
+    warped = warp(uv, color_ref, z)  # wrap it
+    return warped
+
+
 if __name__ == "__main__":
+    torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
-    pose_dataset = CameraPoseDataset(args.viewport, history_size=args.history_size, prediction_stride=args.prediction_stride)
+    pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride)
     frame_stride = 1/args.fps
     last_timestamp = None
     last_frame = None
@@ -71,12 +97,20 @@ if __name__ == "__main__":
         timestamp = pose_history["timestamp"]
         if last_timestamp is not None and timestamp - last_timestamp < frame_stride:
             continue
-        prediction_viewport = predict_viewport(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
         frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
         n_iter = searchForMaxIteration(frame_folder)
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
         server_gaussians = load_frame(path=frame_ply, sh_degree=args.sh_degree)
-        reference_image, _ = render_frame(prediction_viewport, server_gaussians, pipeline)
+        reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+        groundtruth_camera = Camera(
+            pose=Pose(
+                timestamp=timestamp,
+                R=pose_groundtruth["R"],
+                T=pose_groundtruth["T"]),
+            fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
+        warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
         last_timestamp = timestamp
         frame = frame + 1
 
