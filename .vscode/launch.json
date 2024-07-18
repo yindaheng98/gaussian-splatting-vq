@@ -340,6 +340,10 @@
             "args": [
                 "--viewport",
                 "saved_data/test.txt",
+                "--video",
+                "output/coffee_martini",
+                "--sh-degree",
+                "2",
             ]
         },
         {

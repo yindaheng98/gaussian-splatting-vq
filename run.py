@@ -1,7 +1,12 @@
+import os
 import argparse
+import torch
 from typing import NamedTuple
 from scene.camera_dataset import CameraPoseDataset, Pose
-from gaussian_renderer import render
+from gaussian_renderer import render, GaussianModel
+from arguments import PipelineParams
+from scene.cameras import Camera as View
+from utils.system_utils import searchForMaxIteration
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--viewport", type=str, required=True, help="Path to the camera pose.")
@@ -13,6 +18,8 @@ parser.add_argument("--buffersize", type=int, default=10, help="Camera buffer si
 parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
 parser.add_argument("--history-size", type=int, default=15)
 parser.add_argument("--prediction-stride", type=int, default=5)
+parser.add_argument("--video", type=str, required=True)
+parser.add_argument("--sh-degree", type=int, default=3)
 
 
 class Camera(NamedTuple):
@@ -26,24 +33,50 @@ class Camera(NamedTuple):
 def predict_viewport(pose_history, fovx: float, fovy: float, width: int, height: int):
     return Camera(
         pose=Pose(
-            timestamp=pose_history["timestamp"][-1],
+            timestamp=pose_history["history_timestamp"][-1],
             R=pose_history["R"][-1, ...],
             T=pose_history["T"][-1, ...]),
         fovx=fovx, fovy=fovy, width=width, height=height)
 
 
+def load_frame(path, sh_degree=3):
+    gaussians = GaussianModel(sh_degree)
+    gaussians.load_ply(path)
+    return gaussians
+
+
+def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
+    view = View(colmap_id="", R=camera.pose.R.cpu().numpy(), T=camera.pose.T.cpu().numpy(),
+                FoVx=camera.fovx, FoVy=camera.fovy,
+                image=None, gt_alpha_mask=None,
+                image_name="", uid="",
+                data_device="cuda",
+                image_width=camera.width, image_height=camera.height)
+    with torch.no_grad():
+        background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
+        render_pkg = render(view, gaussians, pipeline, background)
+        rendering, depth = render_pkg["render"], render_pkg["depth"]
+        return rendering, depth
+
+
 if __name__ == "__main__":
+    pipeline = PipelineParams(parser)
     args = parser.parse_args()
     pose_dataset = CameraPoseDataset(args.viewport, history_size=args.history_size, prediction_stride=args.prediction_stride)
     frame_stride = 1/args.fps
     last_timestamp = None
+    last_frame = None
     frame = 1
     for pose_history, pose_groundtruth in pose_dataset:
         timestamp = pose_history["timestamp"]
         if last_timestamp is not None and timestamp - last_timestamp < frame_stride:
             continue
         prediction_viewport = predict_viewport(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-        print(prediction_viewport)
+        frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
+        n_iter = searchForMaxIteration(frame_folder)
+        frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
+        server_gaussians = load_frame(path=frame_ply, sh_degree=args.sh_degree)
+        reference_image, _ = render_frame(prediction_viewport, server_gaussians, pipeline)
         last_timestamp = timestamp
         frame = frame + 1
 
