@@ -7,12 +7,13 @@ from gaussian_renderer import render, GaussianModel
 from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
+from utils.graphics_utils import fov2focal
 from warping import reconstrucion, projection, warp
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
-parser.add_argument("--fovx", type=float, default=888, help="Camera fov x axis.")
-parser.add_argument("--fovy", type=float, default=888, help="Camera fov y axis.")
+parser.add_argument("--fovx", type=float, default=fov2focal(876.90487504022, 1600), help="Camera fov x axis.")
+parser.add_argument("--fovy", type=float, default=fov2focal(875.13605328243, 1200), help="Camera fov y axis.")
 parser.add_argument("--width", type=float, default=1600, help="Camera width.")
 parser.add_argument("--height", type=float, default=1200, help="Camera height.")
 parser.add_argument("--buffersize", type=int, default=10, help="Camera buffer size.")
@@ -107,15 +108,12 @@ def save2video(distorted_image, warpedref_image):
         videoout.write((frame.clamp(0, 1) * 255).type(torch.uint8).cpu().numpy())
 
 
-def save2images(distorted_image, warpedref_image, n_frame, folder="output/run"):
+def save2images(distorted_image, warpedref_image, n_frame, n_render, folder="output/run"):
     os.makedirs(folder, exist_ok=True)
     import cv2
     frame = torch.concat((distorted_image, warpedref_image), dim=1).permute(1, 2, 0)
     frame_uint8 = (frame[..., [2, 1, 0]].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
-    i = 1
-    while os.path.isfile(os.path.join(folder, f"frame{n_frame}_{i}.png")):
-        i += 1
-    cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{i}.png"), frame_uint8)
+    cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{n_render}.png"), frame_uint8)
 
 
 if __name__ == "__main__":
@@ -126,23 +124,26 @@ if __name__ == "__main__":
     frame_stride = 1/args.fps
     last_timestamp = None
     last_frame = None
-    frame = 0
+    n_frame = 0
+    n_render = 0
     server_gaussians = GaussianModel(args.sh_degree)
     for pose_history, pose_groundtruth in pose_dataset:
         timestamp = pose_history["timestamp"]
         if last_timestamp is None or timestamp - last_timestamp > frame_stride:
-            frame = frame + 1
+            n_frame = n_frame + 1
             last_timestamp = timestamp
-            if frame > args.max_frame:
+            n_render = 0
+            if n_frame > args.max_frame:
                 break
-            print(f"{timestamp:.4f}", "frame", frame, "loading")
+            print(f"{timestamp:.4f}", "frame", n_frame, "loading")
             prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-            frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
+            frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
             n_iter = searchForMaxIteration(frame_folder)
             frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
             server_gaussians.load_ply(path=frame_ply)
             reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
-        print(f"{timestamp:.4f}", "frame", frame, "rendering")
+        n_render += 1
+        print(f"{timestamp:.4f}", "frame", n_frame, "rendering", n_render)
         groundtruth_camera = Camera(
             pose=Pose(
                 timestamp=timestamp,
@@ -152,8 +153,8 @@ if __name__ == "__main__":
         distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
         warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
         # show3images(distorted_image, reference_image, warpedref_image)  # debug
-        save2video(distorted_image, warpedref_image)  # debug
-        # save2images(distorted_image, warpedref_image, frame)  # debug
+        # save2video(distorted_image, warpedref_image)  # debug
+        save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
 
     if videoout is not None:
         videoout.release()
