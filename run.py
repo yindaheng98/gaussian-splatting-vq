@@ -40,12 +40,6 @@ def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: i
         fovx=fovx, fovy=fovy, width=width, height=height)
 
 
-def load_frame(path, sh_degree=3):
-    gaussians = GaussianModel(sh_degree)
-    gaussians.load_ply(path)
-    return gaussians
-
-
 def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
     view = View(colmap_id="", R=camera.pose.R.cpu().numpy(), T=camera.pose.T.cpu().numpy(),
                 FoVx=camera.fovx, FoVy=camera.fovy,
@@ -98,6 +92,19 @@ def show3images(distorted_image, reference_image, warpedref_image):
     plt.show()
 
 
+videoout = None
+
+
+def save2images(distorted_image, warpedref_image):
+    import cv2
+    frame = torch.concat((distorted_image, warpedref_image), dim=1).permute(1, 2, 0)
+    height, width, _ = frame.shape
+    global videoout
+    if videoout is None:
+        videoout = cv2.VideoWriter('output.mp4', -1, 60, (width, height))
+        videoout.write((frame.clamp(0, 1) * 255).type(torch.uint8).cpu().numpy())
+
+
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
@@ -107,18 +114,20 @@ if __name__ == "__main__":
     last_timestamp = None
     last_frame = None
     frame = 1
+    server_gaussians = GaussianModel(args.sh_degree)
     for pose_history, pose_groundtruth in pose_dataset:
         timestamp = pose_history["timestamp"]
         if last_timestamp is None or timestamp - last_timestamp > frame_stride:
-            print("loading frame", frame)
+            print(f"{timestamp:.4f}", "frame", frame, "loading")
             prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             frame_folder = os.path.join(args.video, f"frame{frame}", "point_cloud")
             n_iter = searchForMaxIteration(frame_folder)
             frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
-            server_gaussians = load_frame(path=frame_ply, sh_degree=args.sh_degree)
+            server_gaussians.load_ply(path=frame_ply)
             reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
             last_timestamp = timestamp
             frame = frame + 1
+        print(f"{timestamp:.4f}", "render frame", frame)
         groundtruth_camera = Camera(
             pose=Pose(
                 timestamp=timestamp,
@@ -127,7 +136,8 @@ if __name__ == "__main__":
             fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
         distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
         warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
-        show3images(distorted_image, reference_image, warpedref_image)
+        # show3images(distorted_image, reference_image, warpedref_image)  # debug
+        save2images(distorted_image, warpedref_image)
 
 
 # TODO: 渲染预测视角处的低清图
