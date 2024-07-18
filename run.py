@@ -84,6 +84,20 @@ def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
     return warped
 
 
+def show3images(distorted_image, reference_image, warpedref_image):
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(12, 4))
+    axs = fig.subplots(ncols=3, nrows=1)
+    axs[0].set_title('distorted image')
+    axs[0].imshow(distorted_image.permute(1, 2, 0).cpu().numpy())
+    axs[1].set_title('reference image')
+    axs[1].imshow(reference_image.permute(1, 2, 0).cpu().numpy())
+    axs[2].set_title('warped image')
+    axs[2].imshow(warpedref_image.permute(1, 2, 0).cpu().numpy())
+    fig.tight_layout(pad=5)
+    plt.show()
+
+
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
@@ -110,7 +124,8 @@ if __name__ == "__main__":
                 T=pose_groundtruth["T"]),
             fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
         distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
-        warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+        warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
+        show3images(distorted_image, reference_image, warpedref_image)
         last_timestamp = timestamp
         frame = frame + 1
 
