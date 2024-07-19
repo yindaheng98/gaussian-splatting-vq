@@ -109,7 +109,8 @@ def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelinePar
     view = camera2view(camera)
     with torch.no_grad():
         background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
-        visible = markVisible(view, gaussians, pipeline, background)
+        render_pkg = render(view, gaussians, pipeline, background)
+        visible = render_pkg["visibility_filter"]
         return visible
 
 
