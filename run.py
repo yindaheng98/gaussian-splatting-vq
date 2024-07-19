@@ -47,7 +47,7 @@ def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: i
             timestamp=pose_history["history_timestamp"][-1],
             R=pose_history["R"][-1, ...],
             T=pose_history["T"][-1, ...]),
-        fovx=fovx, fovy=fovy, width=width, height=height)
+        fovx=fovx + 0.1, fovy=fovy + 0.1, width=width//4, height=height//4)
 
 
 def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
