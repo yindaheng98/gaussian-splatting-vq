@@ -105,7 +105,7 @@ def save2images(distorted_image, warpedref_image, n_frame, n_render, folder="out
     cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{n_render}.png"), frame_uint8)
 
 
-def frustum_culling(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
+def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
     view = camera2view(camera)
     with torch.no_grad():
         background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
@@ -113,9 +113,19 @@ def frustum_culling(camera: Camera, gaussians: GaussianModel, pipeline: Pipeline
         return visible
 
 
+def culling(visible, gaussians: GaussianModel):
+    # gaussians._features_dc[visible, ...] = torch.tensor([0., 0., 0.])  # debug
+    pass
+
+
+def frustum_culling(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
+    visible = mark_visible(camera, server_gaussians, pipeline)
+    with torch.no_grad():
+        culling(visible, gaussians)
+
+
 def load_vq_by_size(camera: Camera, server_gaussians, pipeline: PipelineParams):
-    visible = frustum_culling(camera, server_gaussians, pipeline)  # 视锥剔除
-    print(visible)
+    frustum_culling(camera, server_gaussians, pipeline)
 
 
 if __name__ == "__main__":
@@ -152,10 +162,10 @@ if __name__ == "__main__":
                     T=pose_groundtruth["T"][j, ...]),
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)  # TODO: 渲染色彩失真图
-            warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
+            # warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
-            save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
+            save2images(distorted_image, distorted_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
 
