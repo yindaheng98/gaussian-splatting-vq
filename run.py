@@ -107,6 +107,13 @@ def save2images(distorted_image, warpedref_image, n_frame, n_render, folder="out
 
 def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
     view = camera2view(camera)
+    # view = camera2view(Camera(
+    #     pose=camera.pose,
+    #     fovx=camera.fovx*0.5,
+    #     fovy=camera.fovy*0.5,
+    #     width=camera.width,
+    #     height=camera.height
+    # ))  # debug
     with torch.no_grad():
         background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
         render_pkg = render(view, gaussians, pipeline, background)
@@ -114,19 +121,24 @@ def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelinePar
         return visible
 
 
-def culling(visible, gaussians: GaussianModel):
-    # gaussians._features_dc[visible, ...] = torch.tensor([0., 0., 0.])  # debug
-    pass
+def culling(client_gaussians: GaussianModel, server_gaussians: GaussianModel, visible):
+    client_gaussians._xyz = server_gaussians._xyz[visible, ...]
+    client_gaussians._features_dc = server_gaussians._features_dc[visible, ...]
+    client_gaussians._features_rest = server_gaussians._features_rest[visible, ...]
+    client_gaussians._scaling = server_gaussians._scaling[visible, ...]
+    client_gaussians._rotation = server_gaussians._rotation[visible, ...]
+    client_gaussians._opacity = server_gaussians._opacity[visible, ...]
+    client_gaussians.max_radii2D = server_gaussians.max_radii2D[visible, ...]
 
 
-def frustum_culling(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
+def frustum_culling(client_gaussians: GaussianModel, server_gaussians: GaussianModel, camera: Camera, pipeline: PipelineParams):
     visible = mark_visible(camera, server_gaussians, pipeline)
     with torch.no_grad():
-        culling(visible, gaussians)
+        culling(client_gaussians, server_gaussians, visible)
 
 
-def load_vq_by_size(camera: Camera, server_gaussians, pipeline: PipelineParams):
-    frustum_culling(camera, server_gaussians, pipeline)
+def load_vq_by_size(client_gaussians, server_gaussians, camera: Camera, pipeline: PipelineParams):
+    frustum_culling(client_gaussians, server_gaussians, camera, pipeline)
 
 
 if __name__ == "__main__":
@@ -137,6 +149,7 @@ if __name__ == "__main__":
     frame_stride = 1/args.fps
     last_frame = None
     server_gaussians = GaussianModel(args.sh_degree)
+    client_gaussians = GaussianModel(args.sh_degree)
     for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
@@ -149,7 +162,7 @@ if __name__ == "__main__":
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
         server_gaussians.load_ply(path=frame_ply)
         reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
-        load_vq_by_size(prediction_camera, server_gaussians, pipeline)
+        load_vq_by_size(client_gaussians, server_gaussians, prediction_camera, pipeline)
         # TODO: 读取带宽数据
         # TODO: 决策量化级别, 预测视角内塞满带宽
         # TODO: 按照量化级别执行反量化
@@ -162,11 +175,11 @@ if __name__ == "__main__":
                     R=pose_groundtruth["R"][j, ...],
                     T=pose_groundtruth["T"][j, ...]),
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-            distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)  # TODO: 渲染色彩失真图
-            # warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
+            distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
+            warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
-            save2images(distorted_image, distorted_image, n_frame, n_render)  # debug
+            save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
 
