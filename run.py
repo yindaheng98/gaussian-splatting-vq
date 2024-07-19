@@ -3,7 +3,7 @@ import argparse
 import torch
 from typing import NamedTuple
 from scene.camera_dataset import CameraPoseDataset, Pose
-from gaussian_renderer import render, GaussianModel
+from gaussian_renderer import render, GaussianModel, markVisible
 from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
@@ -105,6 +105,19 @@ def save2images(distorted_image, warpedref_image, n_frame, n_render, folder="out
     cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{n_render}.png"), frame_uint8)
 
 
+def frustum_culling(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
+    view = camera2view(camera)
+    with torch.no_grad():
+        background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
+        visible = markVisible(view, gaussians, pipeline, background)
+        return visible
+
+
+def load_vq_by_size(camera: Camera, server_gaussians, pipeline: PipelineParams):
+    visible = frustum_culling(camera, server_gaussians, pipeline)  # 视锥剔除
+    print(visible)
+
+
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
@@ -125,6 +138,7 @@ if __name__ == "__main__":
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
         server_gaussians.load_ply(path=frame_ply)
         reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+        load_vq_by_size(prediction_camera, server_gaussians, pipeline)
         # TODO: 读取带宽数据
         # TODO: 决策量化级别, 预测视角内塞满带宽
         # TODO: 按照量化级别执行反量化
