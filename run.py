@@ -115,6 +115,7 @@ if __name__ == "__main__":
     n_frame = 0
     n_render = 0
     server_gaussians = GaussianModel(args.sh_degree)
+    local_gaussians = GaussianModel(args.sh_degree)
     for pose_history, pose_groundtruth in pose_dataset:
         timestamp = pose_history["timestamp"]
         if last_timestamp is None or timestamp - last_timestamp > frame_stride:
@@ -130,6 +131,9 @@ if __name__ == "__main__":
             frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
             server_gaussians.load_ply(path=frame_ply)
             reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+            # TODO: 读取带宽数据
+            # TODO: 决策量化级别, 预测视角内塞满带宽
+            # TODO: 按照量化级别执行反量化
         n_render += 1
         print(f"{timestamp:.4f}", "frame", n_frame, "rendering", n_render)
         groundtruth_camera = Camera(
@@ -138,19 +142,13 @@ if __name__ == "__main__":
                 R=pose_groundtruth["R"],
                 T=pose_groundtruth["T"]),
             fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-        distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
+        distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)  # TODO: 渲染色彩失真图
         warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
         # show3images(distorted_image, reference_image, warpedref_image)  # debug
         # save2video(distorted_image, warpedref_image)  # debug
         save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
+        # TODO: 色彩恢复
+        # TODO: 测质量
 
     if videoout is not None:
         videoout.release()
-
-# TODO: 渲染预测视角处的低清图
-# TODO: 读取带宽数据
-# TODO: 决策量化级别, 预测视角内塞满带宽
-# TODO: 按照量化级别执行反量化
-# TODO: 渲染色彩失真图
-# TODO: 色彩恢复
-# TODO: 测质量
