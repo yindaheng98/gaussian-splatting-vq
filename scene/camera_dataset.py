@@ -28,6 +28,7 @@ class CameraPoseDataset(Dataset):
                 quaternions.append(quaternion)
             Ts = torch.tensor(Ts)
             Ts[..., 0] *= -1  # for Unity data
+            Ts[..., 2] *= -1  # for Unity data
             Rs = quaternion_to_matrix(torch.tensor(quaternions)[..., [3, 0, 1, 2]])  # for Unity data
             # Rs = quaternion_to_matrix(torch.tensor(quaternions))
             self.poses = [Pose(timestamp=t, R=Rs[i, ...], T=Ts[i, ...]) for i, t in enumerate(ts)]
