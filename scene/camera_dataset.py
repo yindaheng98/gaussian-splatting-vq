@@ -28,7 +28,6 @@ class CameraPoseDataset(Dataset):
                 quaternions.append(quaternion)
             Ts = torch.tensor(Ts)
             Rs = quaternion_to_matrix(torch.tensor(quaternions))
-            Ts[..., 1] *= -1
             self.poses = [Pose(timestamp=t, R=Rs[i, ...], T=Ts[i, ...]) for i, t in enumerate(ts)]
 
     def __len__(self):
