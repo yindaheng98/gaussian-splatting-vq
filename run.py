@@ -7,8 +7,7 @@ from gaussian_renderer import render, GaussianModel
 from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
-from utils.graphics_utils import fov2focal
-from warping import reconstrucion, projection, warp
+from warping import fromJSON, reconstrucion, projection, warp
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -33,6 +32,15 @@ class Camera(NamedTuple):
     height: int
 
 
+def camera2view(camera: Camera):
+    return View(colmap_id="", R=camera.pose.R.cpu().numpy(), T=camera.pose.T.cpu().numpy(),
+                FoVx=camera.fovx, FoVy=camera.fovy,
+                image=None, gt_alpha_mask=None,
+                image_name="", uid="",
+                data_device="cuda",
+                image_width=camera.width, image_height=camera.height)
+
+
 def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: int):
     return Camera(
         pose=Pose(
@@ -43,12 +51,7 @@ def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: i
 
 
 def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
-    view = View(colmap_id="", R=camera.pose.R.cpu().numpy(), T=camera.pose.T.cpu().numpy(),
-                FoVx=camera.fovx, FoVy=camera.fovy,
-                image=None, gt_alpha_mask=None,
-                image_name="", uid="",
-                data_device="cuda",
-                image_width=camera.width, image_height=camera.height)
+    view = camera2view(camera)
     with torch.no_grad():
         background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
         render_pkg = render(view, gaussians, pipeline, background)
@@ -57,24 +60,9 @@ def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelinePar
 
 
 def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
-    K = torch.tensor([
-        [camera.fovx, 0, camera.width/2],
-        [0, camera.fovy, camera.height/2],
-        [0, 0, 1]
-    ])
-    R_c2w, T_c2w = camera.pose.R, camera.pose.T
+    K, R_c2w, T_c2w, _, _ = fromJSON(camera2view(camera).toJSON(0))
     xyz = reconstrucion(K, R_c2w, T_c2w, depth)
-    K_r = torch.tensor([
-        [camera.fovx, 0, camera.width/2],
-        [0, camera.fovy, camera.height/2],
-        [0, 0, 1]
-    ])
-    K_r = torch.tensor([
-        [camera_ref.fovx, 0, camera_ref.width/2],
-        [0, camera_ref.fovy, camera_ref.height/2],
-        [0, 0, 1]
-    ])
-    R_r, t_r = camera_ref.pose.R, camera_ref.pose.T
+    K_r, R_r, t_r, _, _ = fromJSON(camera2view(camera_ref).toJSON(0))
     uv, z = projection(K_r, R_r, t_r, xyz)
     warped = warp(uv, color_ref, z)  # wrap it
     return warped
