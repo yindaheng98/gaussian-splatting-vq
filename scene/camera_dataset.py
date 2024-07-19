@@ -14,9 +14,11 @@ class Pose(NamedTuple):
 class CameraPoseDataset(Dataset):
     regex = re.compile(r"^([0-9.]+), \(([-0-9.]+), ([-0-9.]+), ([-0-9.]+)\), \(([-0-9.]+), ([-0-9.]+), ([-0-9.]+), ([-0-9.]+)\)")
 
-    def __init__(self, path, history_size=8, prediction_stride=4):
+    def __init__(self, path, history_size=8, prediction_stride=6, prediction_length=3):
         self.history_size = history_size
         self.prediction_stride = prediction_stride
+        self.prediction_length = prediction_length
+        self.item_size = self.history_size + self.prediction_stride + self.prediction_length
         with open(path, 'r') as f:
             ts, Ts, quaternions = [], [], []
             for line in f.readlines():
@@ -35,17 +37,19 @@ class CameraPoseDataset(Dataset):
             self.poses = [Pose(timestamp=t, R=Rs[i, ...], T=Ts[i, ...]) for i, t in enumerate(ts)]
 
     def __len__(self):
-        return len(self.poses) - self.history_size - self.prediction_stride
+        return len(self.poses) // self.item_size
 
     def __getitem__(self, idx):
-        history = self.poses[idx:idx+self.history_size]
+        history_idx = idx * self.item_size
+        history = self.poses[history_idx:history_idx+self.history_size]
         history_timestamp = torch.tensor([h.timestamp for h in history])
         history_R = torch.stack([h.R for h in history], dim=0)
         history_T = torch.stack([h.T for h in history], dim=0)
-        groundtruth = self.poses[idx+self.history_size+self.prediction_stride]
-        groundtruth_timestamp = groundtruth.timestamp
-        groundtruth_R = groundtruth.R
-        groundtruth_T = groundtruth.T
-        history_ = {"history_timestamp": history_timestamp, "R": history_R, "T": history_T, "timestamp": groundtruth_timestamp}
+        prediction_idx = history_idx+self.prediction_stride
+        groundtruth = self.poses[prediction_idx:prediction_idx+self.prediction_length]
+        groundtruth_timestamp = torch.tensor([h.timestamp for h in groundtruth])
+        groundtruth_R = torch.stack([h.R for h in groundtruth], dim=0)
+        groundtruth_T = torch.stack([h.T for h in groundtruth], dim=0)
+        history_ = {"timestamp": history_timestamp, "R": history_R, "T": history_T}
         groundtruth_ = {"timestamp": groundtruth_timestamp, "R": groundtruth_R, "T": groundtruth_T}
         return history_, groundtruth_

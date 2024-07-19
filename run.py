@@ -19,6 +19,7 @@ parser.add_argument("--buffersize", type=int, default=10, help="Camera buffer si
 parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
 parser.add_argument("--history-size", type=int, default=15)
 parser.add_argument("--prediction-stride", type=int, default=5)
+parser.add_argument("--prediction-length", type=int, default=5)
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
 parser.add_argument("--max-frame", type=int, default=30)
@@ -44,7 +45,7 @@ def camera2view(camera: Camera):
 def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: int):
     return Camera(
         pose=Pose(
-            timestamp=pose_history["history_timestamp"][-1],
+            timestamp=pose_history["timestamp"][-1],
             R=pose_history["R"][-1, ...],
             T=pose_history["T"][-1, ...]),
         fovx=fovx + 0.1, fovy=fovy + 0.1, width=width//4, height=height//4)
@@ -108,47 +109,41 @@ if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
-    pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride)
+    pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
-    last_timestamp = None
     last_frame = None
-    n_frame = 0
-    n_render = 0
     server_gaussians = GaussianModel(args.sh_degree)
-    local_gaussians = GaussianModel(args.sh_degree)
-    for pose_history, pose_groundtruth in pose_dataset:
-        timestamp = pose_history["timestamp"]
-        if last_timestamp is None or timestamp - last_timestamp > frame_stride:
-            n_frame = n_frame + 1
-            last_timestamp = timestamp
-            n_render = 0
-            if n_frame > args.max_frame:
-                break
-            print(f"{timestamp:.4f}", "frame", n_frame, "loading")
-            prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-            frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
-            n_iter = searchForMaxIteration(frame_folder)
-            frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
-            server_gaussians.load_ply(path=frame_ply)
-            reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
-            # TODO: 读取带宽数据
-            # TODO: 决策量化级别, 预测视角内塞满带宽
-            # TODO: 按照量化级别执行反量化
-        n_render += 1
-        print(f"{timestamp:.4f}", "frame", n_frame, "rendering", n_render)
-        groundtruth_camera = Camera(
-            pose=Pose(
-                timestamp=timestamp,
-                R=pose_groundtruth["R"],
-                T=pose_groundtruth["T"]),
-            fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-        distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)  # TODO: 渲染色彩失真图
-        warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
-        # show3images(distorted_image, reference_image, warpedref_image)  # debug
-        # save2video(distorted_image, warpedref_image)  # debug
-        save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
-        # TODO: 色彩恢复
-        # TODO: 测质量
+    for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
+        n_frame = i + 1
+        timestamp = pose_history["timestamp"][0].item()
+        if n_frame > args.max_frame:
+            break
+        print(f"{timestamp:.4f}", "frame", n_frame, "loading")
+        prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
+        n_iter = searchForMaxIteration(frame_folder)
+        frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
+        server_gaussians.load_ply(path=frame_ply)
+        reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+        # TODO: 读取带宽数据
+        # TODO: 决策量化级别, 预测视角内塞满带宽
+        # TODO: 按照量化级别执行反量化
+        for j in range(args.prediction_length):
+            n_render = j + 1
+            print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
+            groundtruth_camera = Camera(
+                pose=Pose(
+                    timestamp=pose_groundtruth["timestamp"][j].item(),
+                    R=pose_groundtruth["R"][j, ...],
+                    T=pose_groundtruth["T"][j, ...]),
+                fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+            distorted_image, depth = render_frame(groundtruth_camera, server_gaussians, pipeline)  # TODO: 渲染色彩失真图
+            warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
+            # show3images(distorted_image, reference_image, warpedref_image)  # debug
+            # save2video(distorted_image, warpedref_image)  # debug
+            save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
+            # TODO: 色彩恢复
+            # TODO: 测质量
 
     if videoout is not None:
         videoout.release()
