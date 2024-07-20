@@ -16,6 +16,7 @@ render() {
     rm -rf output/prune-$1/frame$2-$4/train_interp/ours_$3
     python render.py \
         -m output/prune-$1/frame$2-$4 \
-        --iteration $3
+        --iteration $3 \
+        $5
 }
-# render coffee_martini 1 30000 100000
+# render coffee_martini 1 30000 100000 "--skip_train --render_train_interp"
