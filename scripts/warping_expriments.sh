@@ -35,14 +35,18 @@ quantize() {
 
 }
 # quantize coffee_martini 1 30000 12 10 6 6 6
-render() {
+render_ref() {
     rm -rf output/$1/frame$2/train_interp/ours_$3
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
-        $4
+        $4 \
+        --forcefovx 2.0 \
+        --forcefovy 2.0 \
+        --forcewidth 1200 \
+        --forceheight 1200
 }
-# render coffee_martini 1 30000 "--skip_train --render_train_interp"
+# render_ref coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_vq() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3
     cp output/$1/frame$2/cfg_args output/vq-$1/frame$2/cfg_args
