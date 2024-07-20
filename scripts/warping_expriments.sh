@@ -79,13 +79,13 @@ warping() {
 # warping coffee_martini 1 30000 324 00000
 convert() {
     python RT4KSR/scripts/nerfout2dual.py \
-        --dataroot RT4KSR/data/$1-kmeans-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8 \
+        --dataroot RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-warped \
         --hrsrcroot output/$1/frame$2/train_interp/ours_$3/renders \
         --grsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
         --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/warped \
         --name nerfout
     python RT4KSR/scripts/nerfout2dual.py \
-        --dataroot RT4KSR/data/$1-kmeans-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-noee \
+        --dataroot RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-warpednoee \
         --hrsrcroot output/$1/frame$2/train_interp/ours_$3/renders \
         --grsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
         --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee \
