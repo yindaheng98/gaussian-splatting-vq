@@ -69,7 +69,7 @@ warping() {
         # echo \
         python warping.py \
             --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$(printf "%05d" $i) \
-            --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$4 \
+            --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$5 \
             --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i)
     done
 }
