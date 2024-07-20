@@ -41,10 +41,8 @@ render_ref() {
         -m output/$1/frame$2 \
         --iteration $3 \
         $4 \
-        --forcefovx 2.0 \
-        --forcefovy 2.0 \
-        --forcewidth 1200 \
-        --forceheight 1200
+        --forcefovy 2.0 --forceheight 1200 \
+        --forcefovx 2.5 --forcewidth 2319 # height/tan(fovy/2)*tan(fovx/2)
 }
 # render_ref coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_vq() {
