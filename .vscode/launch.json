@@ -388,6 +388,22 @@
             ]
         },
         {
+            "name": "prune",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "prune.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--read",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
+                "--sh-degree",
+                "2",
+                "--save",
+                "output/prune-coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
+            ]
+        },
+        {
             "name": "render vq",
             "type": "debugpy",
             "request": "launch",
