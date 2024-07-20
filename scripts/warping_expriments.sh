@@ -44,15 +44,20 @@ render_gt() {
 # render_gt coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_ref() {
     rm -rf output/$1/frame$2/train_interp_ref/ours_$3
+    fovx=2.5
+    fovy=2.0
+    height=$4
+    width=$(python -c "import math; print(round($height/math.tan($fovy/2)*math.tan($fovx/2)))")
+    # echo \
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
-        $4 \
+        $5 \
         --render_train_interp_to train_interp_ref \
-        --forcefovy 2.0 --forceheight 600 \
-        --forcefovx 2.5 --forcewidth 1158 # height/tan(fovy/2)*tan(fovx/2)
+        --forcefovy $fovy --forceheight $height \
+        --forcefovx $fovx --forcewidth $width # height/tan(fovy/2)*tan(fovx/2)
 }
-# render_ref coffee_martini 1 30000 "--skip_train --render_train_interp"
+# render_ref coffee_martini 1 30000 600 "--skip_train --render_train_interp"
 render_vq() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3
     cp output/$1/frame$2/cfg_args output/vq-$1/frame$2/cfg_args
@@ -111,7 +116,7 @@ data4sr() {
     quant_convert "$1" "14 13 13 13 4"
     quant_convert "$1" "10 7 7 7 4"
 }
-data4sr "coffee_martini 1 30000"
+# data4sr "coffee_martini 1 30000"
 # data4sr cook_spinach 1 30000
 # data4sr cut_roasted_beef 1 30000
 # data4sr flame_salmon_1 1 30000
