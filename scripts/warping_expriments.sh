@@ -68,8 +68,9 @@ render_vq() {
 }
 # render_vq coffee_martini 1 30000 "--skip_train --render_train_interp"
 warping() {
+    rm -rf output/vq-$1/frame$2/train_interp/ours_$3/nowarp
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped
-    rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
+    rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warpednoee
     for f in $(ls output/vq-$1/frame$2/train_interp/ours_$3/renders/); do
         if ! [[ $f =~ $4 ]]; then
             continue
@@ -79,8 +80,10 @@ warping() {
             --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$i \
             --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$5 \
             --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$i
-        mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
-        mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$i.no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee/$i.png
+        mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/warpednoee
+        mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$i.no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warpednoee/$i.png
+        mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/nowarp
+        ln output/$1/frame$2/train_interp/ours_$3/renders/$5.png output/vq-$1/frame$2/train_interp/ours_$3/nowarp/$i.png
     done
 }
 # warping coffee_martini 1 30000 "([0-9]+)[.]png" 00000
@@ -97,7 +100,14 @@ convert() {
         --dataroot RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-warpednoee \
         --hrsrcroot output/$1/frame$2/train_interp/ours_$3/renders \
         --grsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
-        --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee \
+        --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/warpednoee \
+        --name nerfout --skipresize
+    rm -rf RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-nowarp
+    python RT4KSR/scripts/nerfout2dual.py \
+        --dataroot RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-nowarp \
+        --hrsrcroot output/$1/frame$2/train_interp/ours_$3/renders \
+        --grsrcroot output/vq-$1/frame$2/train_interp/ours_$3/renders \
+        --crsrcroot output/vq-$1/frame$2/train_interp/ours_$3/nowarp \
         --name nerfout --skipresize
 }
 # convert coffee_martini 1 30000 12 10 6 6 6
