@@ -66,8 +66,8 @@ render_vq() {
 warping() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
-    for ((i = 1; i < $4; ++i)); do
-        # echo \
+    for ((i = 0; i <= $4; ++i)); do
+        echo $i/$4
         python warping.py \
             --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$(printf "%05d" $i) \
             --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$5 \
@@ -76,7 +76,7 @@ warping() {
         mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i).no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee/$(printf "%05d" $i).png
     done
 }
-# warping coffee_martini 1 30000 324 00000
+# warping coffee_martini 1 30000 323 00000
 convert() {
     python RT4KSR/scripts/nerfout2dual.py \
         --dataroot RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-warped \
