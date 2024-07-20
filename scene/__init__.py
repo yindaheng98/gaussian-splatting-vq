@@ -95,7 +95,7 @@ class Scene:
     def getTrainCameras(self, scale=1.0):
         return self.train_cameras[scale]
 
-    def getTrainInterpCameras(self, scale=1.0):
+    def getTrainInterpCameras(self, scale=1.0, fovx=None, fovy=None, width=None, height=None):
         if hasattr(self, "train_interp_cameras"):
             train_interp_cameras = getattr(self, "train_interp_cameras")
             if scale in train_interp_cameras:
@@ -105,9 +105,9 @@ class Scene:
         print(f"Init interp cameras, scale={scale}")
         train_interp_cameras = []
         for cam0, cam1 in product(self.train_cameras[scale], self.train_cameras[scale]):
-            FoVx = self.train_cameras[scale][0].FoVx
-            FoVy = self.train_cameras[scale][0].FoVy
-            train_interp_cameras.append(camera_interp(cam0, cam1, FoVx=FoVx, FoVy=FoVy))
+            FoVx = fovx or self.train_cameras[scale][0].FoVx
+            FoVy = fovy or self.train_cameras[scale][0].FoVy
+            train_interp_cameras.append(camera_interp(cam0, cam1, FoVx=FoVx, FoVy=FoVy, width=width, height=height))
         getattr(self, "train_interp_cameras")[scale] = train_interp_cameras
         return train_interp_cameras
 

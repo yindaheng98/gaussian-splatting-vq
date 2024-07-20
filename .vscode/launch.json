@@ -178,7 +178,15 @@
                 "--iteration",
                 "30000",
                 "--skip_train",
-                "--render_train_interp"
+                "--render_train_interp",
+                "--forcefovx",
+                "2",
+                "--forcefovy",
+                "2",
+                "--forcewidth",
+                "600",
+                "--forceheight",
+                "600",
             ]
         },
         {
