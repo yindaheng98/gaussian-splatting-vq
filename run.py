@@ -3,7 +3,9 @@ import argparse
 import torch
 from typing import NamedTuple
 from scene.camera_dataset import CameraPoseDataset, Pose
-from gaussian_renderer import render, GaussianModel, markVisible
+from gaussian_renderer import render, GaussianModel
+from scene.gaussian_vq import VQGaussianModel, Attribute
+from scene.gaussian_kmeans import KMeansGaussianModel
 from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
@@ -137,8 +139,76 @@ def frustum_culling(client_gaussians: GaussianModel, server_gaussians: GaussianM
         culling(client_gaussians, server_gaussians, visible)
 
 
-def load_vq_by_size(client_gaussians, server_gaussians, camera: Camera, pipeline: PipelineParams):
-    frustum_culling(client_gaussians, server_gaussians, camera, pipeline)
+def mark_visible_different(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, visible):
+
+    def mark_attr_different(threshold, attr: Attribute, i=0):
+        attributes = gaussians.get_data(attr, i)
+        last_attributes = last_gaussians.get_data(attr, i)
+        different = (attributes - last_attributes) > threshold
+        if different.dim() > 1:
+            different = different.any(dim=-1)
+        return torch.logical_and(different,  visible)
+    mark = mark_attr_different(0.1, "xyz")
+    mark |= mark_attr_different(0.1, Attribute.features_dc)
+    mark |= mark_attr_different(0.1, Attribute.features_rest)
+    mark |= mark_attr_different(0.1, Attribute.scaling)
+    mark |= mark_attr_different(0.1, Attribute.rotation)
+    mark |= mark_attr_different(0.1, Attribute.opacity)
+    print("visible", visible.sum().item())
+    print("visible different", mark.sum().item())
+    return mark
+
+
+def update_visible_different_to_last(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, visible_different):
+
+    def load_attr_visible_different(attr: Attribute, i=0):
+        attributes = gaussians.get_data(attr, i)
+        last_attributes = last_gaussians.get_data(attr, i)
+        last_attributes[visible_different, ...] = attributes[visible_different, ...]
+        last_gaussians.set_data(attr, last_attributes, i)
+    load_attr_visible_different("xyz")
+    load_attr_visible_different(Attribute.features_dc)
+    load_attr_visible_different(Attribute.features_rest)
+    load_attr_visible_different(Attribute.scaling)
+    load_attr_visible_different(Attribute.rotation)
+    load_attr_visible_different(Attribute.opacity)
+
+
+def load_visible_from_last(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, visible):
+
+    def load_attr_visible(attr: Attribute, i=0):
+        if gaussians.get_data(attr, i).shape[0] == last_gaussians.get_data(attr, i).shape[0]:
+            with torch.no_grad():
+                setattr(gaussians, "_" + str(attr), getattr(gaussians, "_" + str(attr))[visible, ...].clone())
+        gaussians.set_data(attr, last_gaussians.get_data(attr, i)[visible, ...], i)
+    load_attr_visible("xyz")
+    load_attr_visible(Attribute.features_dc)
+    load_attr_visible(Attribute.features_rest)
+    load_attr_visible(Attribute.scaling)
+    load_attr_visible(Attribute.rotation)
+    load_attr_visible(Attribute.opacity)
+
+
+def load_vq_by_size(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, camera: Camera, pipeline: PipelineParams):
+    visible = mark_visible(camera, gaussians, pipeline)
+    visible_different = mark_visible_different(gaussians, last_gaussians, visible)
+    update_visible_different_to_last(gaussians, last_gaussians, visible_different)
+    load_visible_from_last(gaussians, last_gaussians, visible)
+
+
+def init_gaussians(gaussians: VQGaussianModel, init_path=None):
+    gaussians.load_ply(init_path)
+
+    def init_attr(attr: Attribute, i=0):
+        attributes = gaussians.get_data(attr, i)
+        attributes[...] = 0
+        gaussians.set_data(attr, attributes, i)
+    init_attr("xyz")
+    init_attr(Attribute.features_dc)
+    init_attr(Attribute.features_rest)
+    init_attr(Attribute.scaling)
+    init_attr(Attribute.rotation)
+    init_attr(Attribute.opacity)
 
 
 if __name__ == "__main__":
@@ -149,7 +219,8 @@ if __name__ == "__main__":
     frame_stride = 1/args.fps
     last_frame = None
     server_gaussians = GaussianModel(args.sh_degree)
-    client_gaussians = GaussianModel(args.sh_degree)
+    client_gaussians = KMeansGaussianModel(args.sh_degree)
+    last_gaussians = KMeansGaussianModel(args.sh_degree)
     for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
@@ -160,9 +231,14 @@ if __name__ == "__main__":
         frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
         n_iter = searchForMaxIteration(frame_folder)
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
+
         server_gaussians.load_ply(path=frame_ply)
         reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
-        load_vq_by_size(client_gaussians, server_gaussians, prediction_camera, pipeline)
+
+        if n_frame == 1:
+            init_gaussians(last_gaussians, frame_ply)
+        client_gaussians.load_ply(path=frame_ply)
+        load_vq_by_size(client_gaussians, last_gaussians, prediction_camera, pipeline)
         # TODO: 读取带宽数据
         # TODO: 决策量化级别, 预测视角内塞满带宽
         # TODO: 按照量化级别执行反量化
