@@ -65,17 +65,20 @@ render_vq() {
 warping() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
-    for ((i = 0; i <= $4; ++i)); do
-        echo $i/$4
+    for f in $(ls output/vq-$1/frame$2/train_interp/ours_$3/renders/); do
+        if ! [[ $f =~ $4 ]]; then
+            continue
+        fi
+        i="${BASH_REMATCH[1]}"
         python warping.py \
-            --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$(printf "%05d" $i) \
+            --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$i \
             --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$5 \
-            --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i)
+            --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$i
         mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
-        mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i).no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee/$(printf "%05d" $i).png
+        mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$i.no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee/$i.png
     done
 }
-# warping coffee_martini 1 30000 323 00000
+# warping coffee_martini 1 30000 "([0-9]+)[.]png" 00000
 convert() {
     rm -rf RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-warped
     python RT4KSR/scripts/nerfout2dual.py \
@@ -99,8 +102,9 @@ data4sr() {
     quant_convert() {
         quantize $1 $2 $3 $4 $5 $6 $7 $8
         render_vq $1 $2 $3 "--skip_train --render_train_interp"
-        warping $1 $2 $3 00000
+        warping $1 $2 $3 323 00000
         convert $1 $2 $3 $4 $5 $6 $7 $8
+        # TODO清晰度调节
     }
     quant_convert $1 $2 $3 8 4 4 4 4     # worst
     quant_convert $1 $2 $3 16 16 16 16 4 # best
@@ -108,14 +112,14 @@ data4sr() {
     quant_convert $1 $2 $3 14 13 13 13 4
     quant_convert $1 $2 $3 10 7 7 7 4
 }
-data4sr coffee_martini 1 30000
-data4sr cook_spinach 1 30000
-data4sr cut_roasted_beef 1 30000
-data4sr flame_salmon_1 1 30000
-data4sr flame_steak 1 30000
-data4sr sear_steak 1 30000
+# data4sr coffee_martini 1 30000
+# data4sr cook_spinach 1 30000
+# data4sr cut_roasted_beef 1 30000
+# data4sr flame_salmon_1 1 30000
+# data4sr flame_steak 1 30000
+# data4sr sear_steak 1 30000
 
-data4sr discussion 1 30000
-data4sr stepin 1 30000
-data4sr trimming 1 30000
-data4sr vrheadset 1 30000
+# data4sr discussion 1 30000
+# data4sr stepin 1 30000
+# data4sr trimming 1 30000
+# data4sr vrheadset 1 30000
