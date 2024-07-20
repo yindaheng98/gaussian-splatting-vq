@@ -35,12 +35,21 @@ quantize() {
 
 }
 # quantize coffee_martini 1 30000 12 10 6 6 6
-render_ref() {
+render_gt() {
     rm -rf output/$1/frame$2/train_interp/ours_$3
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
+        $4
+}
+# render_gt coffee_martini 1 30000 "--skip_train --render_train_interp"
+render_ref() {
+    rm -rf output/$1/frame$2/train_interp_ref/ours_$3
+    python render.py \
+        -m output/$1/frame$2 \
+        --iteration $3 \
         $4 \
+        --render_train_interp_to train_interp_ref \
         --forcefovy 2.0 --forceheight 1200 \
         --forcefovx 2.5 --forcewidth 2319 # height/tan(fovy/2)*tan(fovx/2)
 }
@@ -60,8 +69,8 @@ warping() {
         # echo \
         python warping.py \
             --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$(printf "%05d" $i) \
-            --reference output/$1/frame$2/train_interp/ours_$3/renders/00000 \
+            --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$4 \
             --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i)
     done
 }
-# warping coffee_martini 1 30000 324
+# warping coffee_martini 1 30000 324 00000

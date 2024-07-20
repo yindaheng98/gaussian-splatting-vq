@@ -65,7 +65,7 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
              render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background)
 
         if render_train_interp:
-             render_set(dataset.model_path, "train_interp", scene.loaded_iter, scene.getTrainInterpCameras(fovx=args.forcefovx, fovy=args.forcefovy, width=args.forcewidth, height=args.forceheight), gaussians, pipeline, background)
+             render_set(dataset.model_path, args.render_train_interp_to, scene.loaded_iter, scene.getTrainInterpCameras(fovx=args.forcefovx, fovy=args.forcefovy, width=args.forcewidth, height=args.forceheight), gaussians, pipeline, background)
 
         if not skip_test:
              render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background)
@@ -78,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", default=-1, type=int)
     parser.add_argument("--skip_train", action="store_true")
     parser.add_argument("--render_train_interp", action="store_true")
+    parser.add_argument("--render_train_interp_to", type=str, default="train_interp")
     parser.add_argument("--skip_test", action="store_true")
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--forcefovx", type=float, default=0)
