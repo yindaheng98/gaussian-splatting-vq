@@ -93,3 +93,29 @@ convert() {
         --name nerfout --skipresize
 }
 # convert coffee_martini 1 30000 12 10 6 6 6
+data4sr() {
+    render_gt $1 $2 $3 "--skip_train --render_train_interp"
+    render_ref $1 $2 $3 "--skip_train --render_train_interp"
+    quant_convert() {
+        quantize $1 $2 $3 $4 $5 $6 $7 $8
+        render_vq $1 $2 $3 "--skip_train --render_train_interp"
+        warping $1 $2 $3 00000
+        convert $1 $2 $3 $4 $5 $6 $7 $8
+    }
+    quant_convert $1 $2 $3 8 4 4 4 4     # worst
+    quant_convert $1 $2 $3 16 16 16 16 4 # best
+    quant_convert $1 $2 $3 12 10 10 10 4 # dual=color restore
+    quant_convert $1 $2 $3 14 13 13 13 4
+    quant_convert $1 $2 $3 10 7 7 7 4
+}
+data4sr coffee_martini 1 30000
+data4sr cook_spinach 1 30000
+data4sr cut_roasted_beef 1 30000
+data4sr flame_salmon_1 1 30000
+data4sr flame_steak 1 30000
+data4sr sear_steak 1 30000
+
+data4sr discussion 1 30000
+data4sr stepin 1 30000
+data4sr trimming 1 30000
+data4sr vrheadset 1 30000
