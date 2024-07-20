@@ -18,5 +18,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
     gaussians = GaussianModel(args.sh_degree)
     gaussians.load_ply(args.read)
-    scaling = gaussians.get_scaling.detach()
-    print(scaling)
+    scaling_sum = torch.sum(gaussians._scaling.detach(), dim=1)
+    opacity = gaussians.get_opacity.detach().squeeze(-1)
+    score = torch.log(opacity)+scaling_sum
+    topk = torch.topk(score, args.target)
+    top = topk.values[-1].item()
+    visible = score > top
+    print(visible.shape[0], "->", visible.sum())
+    gaussians._xyz = gaussians._xyz[visible, ...]
+    gaussians._features_dc = gaussians._features_dc[visible, ...]
+    gaussians._features_rest = gaussians._features_rest[visible, ...]
+    gaussians._scaling = gaussians._scaling[visible, ...]
+    gaussians._rotation = gaussians._rotation[visible, ...]
+    gaussians._opacity = gaussians._opacity[visible, ...]
+    gaussians.max_radii2D = gaussians.max_radii2D[visible, ...]
+    gaussians.save_ply(args.save)
