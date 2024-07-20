@@ -2,6 +2,7 @@
 # 下载首帧训练结果
 
 download() {
+    rclone -v --config rclone.conf copy server:gaussian-splatting-vq/data/$1/frame1 ./data/$1/frame1
     rclone -v --config rclone.conf copy server:gaussian-splatting-vq/output/$1/frame1 ./output/$1/frame1
     rclone -v --config rclone.conf copy server:gaussian-splatting-vq/output/vq-$1/frame1 ./output/vq-$1/frame1
 }
