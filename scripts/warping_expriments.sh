@@ -82,8 +82,11 @@ warping() {
             --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$i
         mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/warpednoee
         mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$i.no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warpednoee/$i.png
-        mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/nowarp
-        ln output/$1/frame$2/train_interp/ours_$3/renders/$5.png output/vq-$1/frame$2/train_interp/ours_$3/nowarp/$i.png
+        python scripts/resize_like.py \
+            --read output/$1/frame$2/train_interp/ours_$3/renders/$5.png \
+            --like output/vq-$1/frame$2/train_interp/ours_$3/renders/$i.png \
+            --save output/vq-$1/frame$2/train_interp/ours_$3/nowarp/$i.png \
+            --scale 0.25
     done
 }
 # warping coffee_martini 1 30000 "([0-9]+)[.]png" 00000
