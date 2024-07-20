@@ -65,12 +65,15 @@ render_vq() {
 # render_vq coffee_martini 1 30000 "--skip_train --render_train_interp"
 warping() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped
+    rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
     for ((i = 1; i < $4; ++i)); do
         # echo \
         python warping.py \
             --local output/vq-$1/frame$2/train_interp/ours_$3/renders/$(printf "%05d" $i) \
             --reference output/$1/frame$2/train_interp_ref/ours_$3/renders/$5 \
             --warped output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i)
+        mkdir -p output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee
+        mv output/vq-$1/frame$2/train_interp/ours_$3/warped/$(printf "%05d" $i).no_error_erosion.png output/vq-$1/frame$2/train_interp/ours_$3/warped_no_ee/$(printf "%05d" $i).png
     done
 }
 # warping coffee_martini 1 30000 324 00000
