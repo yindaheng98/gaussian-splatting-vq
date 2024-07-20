@@ -1,6 +1,5 @@
 # !/bin/bash
 # should run after kmeans_build.sh
-QP=16
 quantize() {
     rm output/vq-$1/frame$2/point_cloud/iteration_$3/point_cloud_vq.ply
     # quant by kmeans
@@ -50,8 +49,8 @@ render_ref() {
         --iteration $3 \
         $4 \
         --render_train_interp_to train_interp_ref \
-        --forcefovy 2.0 --forceheight 1200 \
-        --forcefovx 2.5 --forcewidth 2319 # height/tan(fovy/2)*tan(fovx/2)
+        --forcefovy 2.0 --forceheight 600 \
+        --forcefovx 2.5 --forcewidth 1158 # height/tan(fovy/2)*tan(fovx/2)
 }
 # render_ref coffee_martini 1 30000 "--skip_train --render_train_interp"
 render_vq() {
