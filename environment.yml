@@ -1,12 +1,10 @@
 name: gaussian_splatting
 channels:
-  - rapidsai
   - nvidia
   - pytorch
   - conda-forge
   - defaults
 dependencies:
-  - rapids=24.06
   - python=3.11
   - cuda-version=12.1
   - plyfile=0.8.1
