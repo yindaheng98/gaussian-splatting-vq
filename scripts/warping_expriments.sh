@@ -37,34 +37,37 @@ render_gt() {
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
-        $4
+        --skip_train --render_train_interp
 }
-# render_gt coffee_martini 1 30000 "--skip_train --render_train_interp"
+# render_gt coffee_martini 1 30000
 render_ref() {
     rm -rf output/$1/frame$2/train_interp_ref/ours_$3
-    fovx=2.5
-    fovy=2.0
-    height=$4
+    fovx=$4
+    fovy=$5
+    height=$6
     width=$(python -c "import math; print(round($height/math.tan($fovy/2)*math.tan($fovx/2)))")
     # echo \
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
-        $5 \
+        --skip_train --render_train_interp \
         --render_train_interp_to train_interp_ref \
         --forcefovy $fovy --forceheight $height \
         --forcefovx $fovx --forcewidth $width # height/tan(fovy/2)*tan(fovx/2)
 }
-# render_ref coffee_martini 1 30000 600 "--skip_train --render_train_interp"
+# render_ref coffee_martini 1 30000 2.5 2.0 600
+# render_ref discussion 1 30000 2.2 1.9 900
+# render_ref taekwondo 1 30000 1.6 1.3 900
+# render_ref walking 1 30000 2.2 1.3 900
 render_vq() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3
     cp output/$1/frame$2/cfg_args output/vq-$1/frame$2/cfg_args
     python render.py \
         -m output/vq-$1/frame$2 \
         --iteration $3 \
-        $4
+        --skip_train --render_train_interp
 }
-# render_vq coffee_martini 1 30000 "--skip_train --render_train_interp"
+# render_vq coffee_martini 1 30000
 warping() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/nowarp
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3/warped
@@ -88,6 +91,9 @@ warping() {
     done
 }
 # warping coffee_martini 1 30000 "([0-9]+)[.]png" 00000
+# warping discussion 1 30000 "([0-9]+)[.]png" 00000
+# warping taekwondo 1 30000 "([0-9]+)[.]png" 00002
+# warping walking 1 30000 "([0-9]+)[.]png" 00002
 convert() {
     rm -rf RT4KSR/data/$1-kmeans-qp-none-scale-$4-rot-$5-f_dc-$6-f_rest-$7-opacity-$8-warped
     python RT4KSR/scripts/nerfout2dual.py \
@@ -127,17 +133,17 @@ data4sr() {
     quant_convert "$1" "14 13 13 13 4"
     quant_convert "$1" "10 7 7 7 4"
 }
-data4sr "coffee_martini 1 30000" 900
+# data4sr "coffee_martini 1 30000" 900
 # data4sr "cook_spinach 1 30000" 900
 # data4sr "cut_roasted_beef 1 30000" 900
 # data4sr "flame_salmon_1 1 30000" 900
 # data4sr "flame_steak 1 30000" 900
 # data4sr "sear_steak 1 30000" 900
 
-data4sr "discussion 1 30000" 540
-# data4sr "stepin 1 30000" 540
-# data4sr "trimming 1 30000" 540
-# data4sr "vrheadset 1 30000" 540
+# data4sr "discussion 1 30000" 720
+# data4sr "stepin 1 30000" 720
+# data4sr "trimming 1 30000" 720
+# data4sr "vrheadset 1 30000" 720
 
-data4sr "taekwondo 1 30000" 810
+# data4sr "taekwondo 1 30000" 810
 # data4sr "walking 1 30000" 810
