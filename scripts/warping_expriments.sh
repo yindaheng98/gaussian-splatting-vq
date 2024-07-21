@@ -119,13 +119,13 @@ convert() {
 }
 # convert coffee_martini 1 30000 12 10 6 6 6
 data4sr() {
-    render_gt $1
-    render_ref $1 $2 $3
-    warping_params=$4
+    # render_gt $1
+    render_ref $1 $2
+    warping_idx=$3
     quant_convert() {
         quantize $1 $2
         render_vq $1
-        warping $1 "([0-9]+)[.]png" $warping_params
+        warping $1 "([0-9]+)[.]png" $warping_idx
         convert $1 $2
     }
     quant_convert "$1" "8 4 4 4 4"     # worst
@@ -134,17 +134,17 @@ data4sr() {
     quant_convert "$1" "14 13 13 13 4"
     quant_convert "$1" "10 7 7 7 4"
 }
-data4sr "coffee_martini 1 30000" 00000 "2.5 2.0 600"
-data4sr "cook_spinach 1 30000" 00000 "2.5 2.0 600"
-data4sr "cut_roasted_beef 1 30000" 00000 "2.5 2.0 600"
-data4sr "flame_salmon_1 1 30000" 00000 "2.5 2.0 600"
-data4sr "flame_steak 1 30000" 00000 "2.5 2.0 600"
-data4sr "sear_steak 1 30000" 00000 "2.5 2.0 600"
+data4sr "coffee_martini 1 30000" "2.5 2.0 600" 00000
+data4sr "cook_spinach 1 30000" "2.5 2.0 600" 00000
+data4sr "cut_roasted_beef 1 30000" "2.5 2.0 600" 00000
+data4sr "flame_salmon_1 1 30000" "2.5 2.0 600" 00000
+data4sr "flame_steak 1 30000" "2.5 2.0 600" 00000
+data4sr "sear_steak 1 30000" "2.5 2.0 600" 00000
 
-data4sr "discussion 1 30000" 00000 "2.2 1.9 900"
-data4sr "stepin 1 30000" 00000 "2.2 1.9 900"
-data4sr "trimming 1 30000" 00000 "2.2 1.9 900"
-data4sr "vrheadset 1 30000" 00000 "2.2 1.9 900"
+data4sr "discussion 1 30000" "2.2 1.9 900" 00000
+data4sr "stepin 1 30000" "2.2 1.9 900" 00000
+data4sr "trimming 1 30000" "2.2 1.9 900" 00000
+data4sr "vrheadset 1 30000" "2.2 1.9 900" 00000
 
-data4sr "taekwondo 1 30000" 00002 "1.6 1.3 900"
-data4sr "walking 1 30000" 00002 "2.2 1.3 900"
+data4sr "taekwondo 1 30000" "1.6 1.3 900" 00002
+data4sr "walking 1 30000" "2.2 1.3 900" 00002
