@@ -134,12 +134,12 @@ data4sr() {
     quant_convert "$1" "14 13 13 13 4"
     quant_convert "$1" "10 7 7 7 4"
 }
-data4sr "coffee_martini 1 30000" "2.5 2.0 600" 00000
-data4sr "cook_spinach 1 30000" "2.5 2.0 600" 00000
-data4sr "cut_roasted_beef 1 30000" "2.5 2.0 600" 00000
-data4sr "flame_salmon_1 1 30000" "2.5 2.0 600" 00000
-data4sr "flame_steak 1 30000" "2.5 2.0 600" 00000
-data4sr "sear_steak 1 30000" "2.5 2.0 600" 00000
+data4sr "coffee_martini 1 30000" "2.5 2.0 900" 00000
+data4sr "cook_spinach 1 30000" "2.5 2.0 900" 00000
+data4sr "cut_roasted_beef 1 30000" "2.5 2.0 900" 00000
+data4sr "flame_salmon_1 1 30000" "2.5 2.0 900" 00000
+data4sr "flame_steak 1 30000" "2.5 2.0 900" 00000
+data4sr "sear_steak 1 30000" "2.5 2.0 900" 00000
 
 data4sr "discussion 1 30000" "2.2 1.9 900" 00000
 data4sr "stepin 1 30000" "2.2 1.9 900" 00000
