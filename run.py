@@ -187,7 +187,16 @@ def load_visible_from_last(gaussians: VQGaussianModel, last_gaussians: VQGaussia
     load_attr_visible(Attribute.scaling)
     load_attr_visible(Attribute.rotation)
     load_attr_visible(Attribute.opacity)
-    # TODO: load LoD 数据
+
+
+def compute_next_lod(visible, visible_different, current_lods):
+    # TODO: 计算接下来每个参数都需要多少LoD, 让新增的接近平均LoD
+    return current_lods
+
+
+def load_lod(gaussians: VQGaussianModel, current_lods):
+    # TODO: load VQ LoD 数据
+    pass
 
 
 def load_vq_by_size(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, camera: Camera, pipeline: PipelineParams):
