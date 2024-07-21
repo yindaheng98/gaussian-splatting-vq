@@ -40,9 +40,24 @@ doall() {
         render $1 $2 "--skip_train --render_train_interp"
         metrics $1 $2
     }
+    eval_prune "$1" 300000
+    eval_prune "$1" 250000
     eval_prune "$1" 200000
     eval_prune "$1" 150000
     eval_prune "$1" 100000
     eval_prune "$1" 50000
 }
 doall "coffee_martini 1 30000"
+doall "cook_spinach 1 30000"
+doall "cut_roasted_beef 1 30000"
+doall "flame_salmon_1 1 30000"
+doall "flame_steak 1 30000"
+doall "sear_steak 1 30000"
+
+doall "discussion 1 30000"
+doall "stepin 1 30000"
+doall "trimming 1 30000"
+doall "vrheadset 1 30000"
+
+doall "taekwondo 1 30000"
+doall "walking 1 30000"
