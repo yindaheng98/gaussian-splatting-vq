@@ -1,7 +1,7 @@
 import os
 import argparse
 import torch
-from typing import NamedTuple
+from typing import NamedTuple, List
 from scene.camera_dataset import CameraPoseDataset, Pose
 from gaussian_renderer import render, GaussianModel
 from scene.gaussian_vq import VQGaussianModel, Attribute
@@ -189,7 +189,7 @@ def load_visible_from_last(gaussians: VQGaussianModel, last_gaussians: VQGaussia
     load_attr_visible(Attribute.opacity)
 
 
-def compute_next_lod(visible, visible_different, current_lods):
+def compute_next_lod(bitlimit: int, visible: torch.Tensor, visible_different: torch.Tensor, current_lods: torch.Tensor, lod_bitsize: List[int]):
     # TODO: 计算接下来每个参数都需要多少LoD, 让新增的接近平均LoD
     return current_lods
 
@@ -199,11 +199,12 @@ def load_lod(gaussians: VQGaussianModel, current_lods):
     pass
 
 
-def load_vq_by_size(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, camera: Camera, pipeline: PipelineParams):
+def compute_visible_different(gaussians: VQGaussianModel, last_gaussians: VQGaussianModel, camera: Camera, pipeline: PipelineParams):
     visible = mark_visible(camera, gaussians, pipeline)
     visible_different = mark_visible_different(gaussians, last_gaussians, visible)
     update_visible_different_to_last(gaussians, last_gaussians, visible_different)
     load_visible_from_last(gaussians, last_gaussians, visible)
+    return visible, visible_different
 
 
 def init_gaussians(gaussians: VQGaussianModel, init_path=None):
@@ -248,7 +249,7 @@ if __name__ == "__main__":
         if n_frame == 1:
             init_gaussians(last_gaussians, frame_ply)
         client_gaussians.load_ply(path=frame_ply)
-        load_vq_by_size(client_gaussians, last_gaussians, prediction_camera, pipeline)
+        visible, visible_different = compute_visible_different(client_gaussians, last_gaussians, prediction_camera, pipeline)
         # TODO: 读取带宽数据
         # TODO: 决策量化级别, 预测视角内塞满带宽
         # TODO: 按照量化级别执行反量化
