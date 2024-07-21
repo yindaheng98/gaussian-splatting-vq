@@ -200,6 +200,29 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, visible_different: to
         reload_lod += 1  # 加重载lod加到满或者超过了平均lod
     current_lods[should_reload] = reload_lod  # 重载之
     bitlimit_rest = bitlimit - compute_reload_size(should_reload.sum(), reload_lod, lod_bitsize)  # 重载完lod0还剩多大带宽, TODO: 处理负值(lod0都传不完)
+    # 计算: 要提升lod的gaussians提升到多高lod?
+    next_lod = current_lods[visible]+1  # 可见gaussian的下一个lod是?
+    can_lift = next_lod < len(lod_bitsize)  # 哪些还能提升(lod最大只有len(lod_bitsize))
+    next_lod_can_lift = next_lod[can_lift]  # 取出还能提升的
+    next_lod_can_lift_sorted_idx = next_lod_can_lift.argsort()  # 按LoD排序, 从低lod开始提升
+    bit_for_lift = torch.tensor(lod_bitsize)[next_lod_can_lift]  # 提升到下一个lod需要多少bit
+
+    def accu_to_limit(bits, bitlimit: int, i=0, j=None):
+        j = j or bits.shape[0]
+        if bits[:i].sum() > bitlimit:
+            return i
+        if bits[:j].sum() < bitlimit:
+            return j
+        if i == j or i == j-1:
+            return i
+        k = (i+j)//2
+        if bits[:k].sum() > bitlimit:
+            return accu_to_limit(bits, bitlimit, i, k)
+        else:
+            return accu_to_limit(bits, bitlimit, k, j)
+    k = accu_to_limit(bit_for_lift[next_lod_can_lift_sorted_idx], bitlimit_rest)  # 找出最多可以提到第几个gaussian
+    next_lod_lift_sorted_idx = next_lod_can_lift_sorted_idx[:k]  # 待提升的gaussian的index的列表
+    bitlimit_rest -= bit_for_lift[next_lod_lift_sorted_idx].sum()  # 提升后的剩余带宽
     return current_lods
 
 
