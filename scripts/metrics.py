@@ -5,11 +5,12 @@
 import cv2
 import torch
 import numpy as np
-import cv2
 import argparse
 import os
 import re
 from collections import OrderedDict
+from tqdm import tqdm
+import json
 
 
 def calculate_psnr(img1, img2, crop_border, input_order='HWC', test_y_channel=False):
@@ -338,7 +339,7 @@ if __name__ == "__main__":
     test_results["psnr_y"] = []
     test_results["ssim_rgb"] = []
     test_results["ssim_y"] = []
-    for entry in os.scandir(args.images):
+    for entry in tqdm(os.scandir(args.images), total=len(os.listdir(args.images))):
         if not re.match(args.match, entry.name):
             continue
         out = cv2.imread(entry.path)
@@ -347,3 +348,5 @@ if __name__ == "__main__":
         test_results["ssim_rgb"].append(calculate_ssim(out, hr_img, crop_border=0))
         test_results["psnr_y"].append(calculate_psnr(out, hr_img, crop_border=0, test_y_channel=True))
         test_results["ssim_y"].append(calculate_ssim(out, hr_img, crop_border=0, test_y_channel=True))
+    with open(os.path.join(args.images, "results.json"), "w", encoding="utf8") as f:
+        json.dump(test_results, f, indent=2)
