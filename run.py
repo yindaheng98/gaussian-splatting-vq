@@ -244,11 +244,6 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.
     return current_lods, bitlimit_rest, should_reload
 
 
-def load_lod(gaussians: VQGaussianModel, current_lods):
-    # TODO: load VQ LoD 数据
-    pass
-
-
 def init_gaussians(gaussians: VQGaussianModel, init_path=None):
     gaussians.load_ply(init_path)
 
@@ -264,6 +259,68 @@ def init_gaussians(gaussians: VQGaussianModel, init_path=None):
     init_attr(Attribute.opacity)
 
 
+class LoDLoadConfig(NamedTuple):
+    reload_path: str
+    n_lod: int
+    codebook_dirpath: str
+
+
+lod_log2_clusters = {
+    Attribute.features_dc:   [],
+    # Attribute.features_rest: [],
+    Attribute.scaling:       [],
+    Attribute.rotation:      [],
+    Attribute.opacity:       [],
+}
+
+current_log2_clusters = {
+    Attribute.features_dc:   4,
+    # Attribute.features_rest: 0,
+    Attribute.scaling:       8,
+    Attribute.rotation:      6,
+    Attribute.opacity:       4,
+}
+
+
+def lift_attr(attr: Attribute, lod_log2_clusters, current_log2_clusters):
+    current_log2_clusters[attr] += 1
+    lod_log2_clusters[Attribute.features_dc].append(current_log2_clusters[Attribute.features_dc])
+    lod_log2_clusters[Attribute.scaling].append(current_log2_clusters[Attribute.scaling])
+    lod_log2_clusters[Attribute.rotation].append(current_log2_clusters[Attribute.rotation])
+    lod_log2_clusters[Attribute.opacity].append(current_log2_clusters[Attribute.opacity])
+
+
+# 每个LoD都只有一个参数提升
+for i in range(2):
+    lift_attr(Attribute.scaling, lod_log2_clusters, current_log2_clusters)
+lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+for i in range(1, 5):
+    lift_attr(Attribute.rotation, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.scaling, lod_log2_clusters, current_log2_clusters)
+    if not i % 2 == 0:
+        continue
+    lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+for i in range(2):
+    lift_attr(Attribute.rotation, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.scaling, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+for i in range(2):
+    lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.rotation, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.rotation, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+# 共32个LoD
+
+
+def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMeansGaussianModel, config: LoDLoadConfig):
+    # TODO: load VQ LoD 数据
+    pass
+
+
 lod_bitsize = [8, 1, 1, 1, 1, 1, 1, 1, 1]
 bitlimit = 1e6
 
@@ -276,6 +333,7 @@ if __name__ == "__main__":
     last_frame = None
     server_gaussians = GaussianModel(args.sh_degree)
     client_gaussians = KMeansGaussianModel(args.sh_degree)
+    client_gaussians_vqloader = KMeansGaussianModel(args.sh_degree)
     last_gaussians = KMeansGaussianModel(args.sh_degree)
     current_lods = None
     for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
@@ -305,7 +363,7 @@ if __name__ == "__main__":
         # TODO: 读取带宽数据
         current_lods, bitlimit_rest, should_reload = compute_next_lod(bitlimit, visible, should_reload, current_lods, lod_bitsize)  # 决策量化级别, 预测视角内塞满带宽
         update_visible_different_to_last(client_gaussians, last_gaussians, should_reload)
-        load_visible_from_last(client_gaussians, last_gaussians, visible)
+        load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
         # TODO: 按照量化级别执行反量化
         for j in range(args.prediction_length):
             n_render = j + 1
