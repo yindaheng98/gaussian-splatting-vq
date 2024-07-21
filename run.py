@@ -191,6 +191,15 @@ def load_visible_from_last(gaussians: VQGaussianModel, last_gaussians: VQGaussia
 
 def compute_next_lod(bitlimit: int, visible: torch.Tensor, visible_different: torch.Tensor, current_lods: torch.Tensor, lod_bitsize: List[int]):
     # TODO: 计算接下来每个参数都需要多少LoD, 让新增的接近平均LoD
+    # 计算: 要重载的gaussians重载到多高lod?
+    should_reload = visible_different  # 视野中的变化区域需要重载
+    avg_lod = current_lods.float().mean()  # 所有gaussian的平均lod
+    def compute_reload_size(n, lod, lod_bitsize): return sum(lod_bitsize[:lod+1])*n  # 用于计算gaussians重载到指定lod需要多少带宽
+    reload_lod = 0
+    while compute_reload_size(should_reload.sum(), reload_lod, lod_bitsize) < bitlimit and reload_lod <= avg_lod:
+        reload_lod += 1  # 加重载lod加到满或者超过了平均lod
+    current_lods[should_reload] = reload_lod  # 重载之
+    bitlimit_rest = bitlimit - compute_reload_size(should_reload.sum(), reload_lod, lod_bitsize)  # 重载完lod0还剩多大带宽, TODO: 处理负值(lod0都传不完)
     return current_lods
 
 
@@ -223,7 +232,7 @@ def init_gaussians(gaussians: VQGaussianModel, init_path=None):
 
 
 lod_bitsize = [8, 1, 1, 1, 1, 1, 1, 1, 1]
-bitlimit = 8e5
+bitlimit = 2e6
 
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
@@ -260,7 +269,7 @@ if __name__ == "__main__":
         client_gaussians.load_ply(path=frame_ply)
         visible, visible_different = compute_visible_different(client_gaussians, last_gaussians, prediction_camera, pipeline)
         # TODO: 读取带宽数据
-        current_lods = compute_next_lod(bitlimit, visible, visible_different, current_lods, lod_bitsize) # 决策量化级别, 预测视角内塞满带宽
+        current_lods = compute_next_lod(bitlimit, visible, visible_different, current_lods, lod_bitsize)  # 决策量化级别, 预测视角内塞满带宽
         # TODO: 按照量化级别执行反量化
         for j in range(args.prediction_length):
             n_render = j + 1
