@@ -34,7 +34,6 @@ quantize() {
 }
 # quantize coffee_martini 1 30000 12 10 6 6 6
 render_gt() {
-    rm -rf output/$1/frame$2/train_interp/ours_$3
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \

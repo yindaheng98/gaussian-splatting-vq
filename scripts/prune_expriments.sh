@@ -21,10 +21,15 @@ render() {
 }
 # render coffee_martini 1 30000 100000 "--skip_train --render_train_interp"
 render_gt() {
-    rm -rf output/$1/frame$2/train_interp/ours_$3
     python render.py \
         -m output/$1/frame$2 \
         --iteration $3 \
         $4
 }
 # render_gt coffee_martini 1 30000 "--skip_train --render_train_interp"
+metrics() {
+    python scripts/metrics.py \
+        --images output/prune-$1/frame$2-$4/train_interp/ours_$3/renders \
+        --gt output/$1/frame$2/train_interp/ours_$3/renders
+}
+# metrics coffee_martini 1 30000 100000
