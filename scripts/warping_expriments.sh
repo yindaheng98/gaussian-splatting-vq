@@ -57,8 +57,8 @@ render_ref() {
 }
 # render_ref coffee_martini 1 30000 2.5 2.0 1200
 # render_ref discussion 1 30000 2.2 1.9 900
-# render_ref taekwondo 1 30000 1.6 1.3 900
-# render_ref walking 1 30000 2.2 1.3 900
+# render_ref taekwondo 1 30000 1.6 1.0 900
+# render_ref walking 1 30000 2.2 1.0 900
 render_vq() {
     rm -rf output/vq-$1/frame$2/train_interp/ours_$3
     cp output/$1/frame$2/cfg_args output/vq-$1/frame$2/cfg_args
@@ -146,5 +146,5 @@ data4sr "stepin 1 30000" "2.2 1.9 900" 00000
 data4sr "trimming 1 30000" "2.2 1.9 900" 00000
 data4sr "vrheadset 1 30000" "2.2 1.9 900" 00000
 
-data4sr "taekwondo 1 30000" "1.6 1.3 900" 00002
-data4sr "walking 1 30000" "2.2 1.3 900" 00002
+data4sr "taekwondo 1 30000" "1.6 1.0 900" 00002
+data4sr "walking 1 30000" "2.2 1.0 900" 00002
