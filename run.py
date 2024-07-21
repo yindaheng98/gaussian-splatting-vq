@@ -189,7 +189,7 @@ def load_visible_from_last(gaussians: VQGaussianModel, last_gaussians: VQGaussia
     load_attr_visible(Attribute.opacity)
 
 
-def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.Tensor, current_lods: torch.Tensor, lod_bitsize: List[int]):
+def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.Tensor, current_lods: torch.Tensor, lod_bitsize: List[int], gaussians: GaussianModel):
     # TODO: 计算接下来每个参数都需要多少LoD, 让新增的接近平均LoD
     # 计算: 要重载的gaussians重载到多高lod?
     avg_lod = current_lods[visible].float().mean()  # 所有可见gaussian的平均lod
@@ -203,7 +203,10 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.
         can_reload_n = int(bitlimit / lod_bitsize[0])  # 能重载多少个
         print("cannot full reload", reload_need_bit.item(), ">", bitlimit, "can only reload", can_reload_n, "x", lod_bitsize[0])
         should_reload_tmp = should_reload[should_reload]
-        should_reload_tmp[can_reload_n:] = False
+        score = torch.log(gaussians.get_opacity.detach().squeeze(-1))+torch.sum(gaussians._scaling.detach(), dim=1)
+        score = score[should_reload]
+        top = torch.topk(score, can_reload_n).values[-1].item()
+        should_reload_tmp[score < top] = False  # 删除小透明
         should_reload[should_reload.clone()] = should_reload_tmp
         current_lods[should_reload] = reload_lod  # 重载之
         return current_lods, 0, should_reload  # 重载完就占满了, 结束
@@ -337,7 +340,7 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
 
 lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
 lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, 32)]
-bitlimit = 1e6
+bitlimit = 2**20  # 30Mbps & 30FPS
 
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
@@ -376,7 +379,7 @@ if __name__ == "__main__":
         visible = mark_visible(prediction_camera, client_gaussians, pipeline)
         should_reload = mark_visible_different(client_gaussians, last_gaussians, visible)
         # TODO: 读取带宽数据
-        current_lods, bitlimit_rest, should_reload = compute_next_lod(bitlimit, visible, should_reload, current_lods, lod_bitsize)  # 决策量化级别, 预测视角内塞满带宽
+        current_lods, bitlimit_rest, should_reload = compute_next_lod(bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians)  # 决策量化级别, 预测视角内塞满带宽
         update_visible_different_to_last(client_gaussians, last_gaussians, should_reload)
         load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
         # TODO: 按照量化级别执行反量化
