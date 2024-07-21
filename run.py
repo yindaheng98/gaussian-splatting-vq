@@ -267,7 +267,7 @@ class LoDLoadConfig(NamedTuple):
 
 lod_log2_clusters = {
     Attribute.features_dc:   [],
-    # Attribute.features_rest: [],
+    Attribute.features_rest: [],
     Attribute.scaling:       [],
     Attribute.rotation:      [],
     Attribute.opacity:       [],
@@ -275,7 +275,7 @@ lod_log2_clusters = {
 
 current_log2_clusters = {
     Attribute.features_dc:   4,
-    # Attribute.features_rest: 0,
+    Attribute.features_rest: 0,
     Attribute.scaling:       8,
     Attribute.rotation:      6,
     Attribute.opacity:       4,
@@ -285,6 +285,7 @@ current_log2_clusters = {
 def lift_attr(attr: Attribute, lod_log2_clusters, current_log2_clusters):
     current_log2_clusters[attr] += 1
     lod_log2_clusters[Attribute.features_dc].append(current_log2_clusters[Attribute.features_dc])
+    lod_log2_clusters[Attribute.features_rest].append(current_log2_clusters[Attribute.features_rest])
     lod_log2_clusters[Attribute.scaling].append(current_log2_clusters[Attribute.scaling])
     lod_log2_clusters[Attribute.rotation].append(current_log2_clusters[Attribute.rotation])
     lod_log2_clusters[Attribute.opacity].append(current_log2_clusters[Attribute.opacity])
@@ -306,14 +307,27 @@ for i in range(2):
     lift_attr(Attribute.scaling, lod_log2_clusters, current_log2_clusters)
     lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
 lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+current_log2_clusters[Attribute.features_rest] = 3
+lift_attr(Attribute.features_rest, lod_log2_clusters, current_log2_clusters)
 for i in range(2):
     lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
     lift_attr(Attribute.rotation, lod_log2_clusters, current_log2_clusters)
     lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
     lift_attr(Attribute.rotation, lod_log2_clusters, current_log2_clusters)
     lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.features_rest, lod_log2_clusters, current_log2_clusters)
+for i in range(2):
+    lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.features_rest, lod_log2_clusters, current_log2_clusters)
 lift_attr(Attribute.features_dc, lod_log2_clusters, current_log2_clusters)
-# 共32个LoD
+lift_attr(Attribute.features_rest, lod_log2_clusters, current_log2_clusters)
+lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+for i in range(2):
+    lift_attr(Attribute.features_rest, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.features_rest, lod_log2_clusters, current_log2_clusters)
+    lift_attr(Attribute.opacity, lod_log2_clusters, current_log2_clusters)
+# 共48个LoD
 
 
 def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMeansGaussianModel, config: LoDLoadConfig):
@@ -321,7 +335,8 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
     pass
 
 
-lod_bitsize = [8, 1, 1, 1, 1, 1, 1, 1, 1]
+lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
+lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, 32)]
 bitlimit = 1e6
 
 if __name__ == "__main__":
