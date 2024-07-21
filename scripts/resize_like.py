@@ -1,8 +1,4 @@
 import cv2
-import numpy as np
-import json
-import torch
-import torch.nn.functional as F
 import argparse
 import os
 

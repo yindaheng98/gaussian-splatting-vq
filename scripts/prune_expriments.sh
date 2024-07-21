@@ -20,3 +20,11 @@ render() {
         $5
 }
 # render coffee_martini 1 30000 100000 "--skip_train --render_train_interp"
+render_gt() {
+    rm -rf output/$1/frame$2/train_interp/ours_$3
+    python render.py \
+        -m output/$1/frame$2 \
+        --iteration $3 \
+        $4
+}
+# render_gt coffee_martini 1 30000 "--skip_train --render_train_interp"

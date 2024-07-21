@@ -404,6 +404,20 @@
             ]
         },
         {
+            "name": "metrics",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/metrics.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--images",
+                "output/prune-coffee_martini/frame1-100000/train_interp/ours_30000/renders",
+                "--gt",
+                "output/coffee_martini/frame1/train_interp/ours_30000/renders",
+            ]
+        },
+        {
             "name": "render vq",
             "type": "debugpy",
             "request": "launch",
