@@ -33,3 +33,16 @@ metrics() {
         --gt output/$1/frame$2/train_interp/ours_$3/renders
 }
 # metrics coffee_martini 1 30000 100000
+doall() {
+    render_gt $1 "--skip_train --render_train_interp"
+    eval_prune() {
+        prune $1 $2
+        render $1 $2 "--skip_train --render_train_interp"
+        metrics $1 $2
+    }
+    eval_prune "$1" 200000
+    eval_prune "$1" 150000
+    eval_prune "$1" 100000
+    eval_prune "$1" 50000
+}
+doall "coffee_martini 1 30000"
