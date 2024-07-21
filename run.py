@@ -222,6 +222,9 @@ def init_gaussians(gaussians: VQGaussianModel, init_path=None):
     init_attr(Attribute.opacity)
 
 
+lod_bitsize = [8, 1, 1, 1, 1, 1, 1, 1, 1]
+bitlimit = 8e5
+
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
@@ -232,6 +235,7 @@ if __name__ == "__main__":
     server_gaussians = GaussianModel(args.sh_degree)
     client_gaussians = KMeansGaussianModel(args.sh_degree)
     last_gaussians = KMeansGaussianModel(args.sh_degree)
+    current_lods = None
     for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
@@ -243,15 +247,20 @@ if __name__ == "__main__":
         n_iter = searchForMaxIteration(frame_folder)
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
 
+        # 服务端渲染
         server_gaussians.load_ply(path=frame_ply)
         reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
 
+        # 发送计算初始化
         if n_frame == 1:
             init_gaussians(last_gaussians, frame_ply)
+            current_lods = torch.zeros(last_gaussians._xyz.shape[0], dtype=torch.int, device=last_gaussians._xyz.device)-1
+
+        # 发送计算
         client_gaussians.load_ply(path=frame_ply)
         visible, visible_different = compute_visible_different(client_gaussians, last_gaussians, prediction_camera, pipeline)
         # TODO: 读取带宽数据
-        # TODO: 决策量化级别, 预测视角内塞满带宽
+        current_lods = compute_next_lod(bitlimit, visible, visible_different, current_lods, lod_bitsize) # 决策量化级别, 预测视角内塞满带宽
         # TODO: 按照量化级别执行反量化
         for j in range(args.prediction_length):
             n_render = j + 1
