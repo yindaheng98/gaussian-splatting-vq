@@ -55,7 +55,7 @@ render_ref() {
         --forcefovy $fovy --forceheight $height \
         --forcefovx $fovx --forcewidth $width # height/tan(fovy/2)*tan(fovx/2)
 }
-# render_ref coffee_martini 1 30000 2.5 2.0 600
+# render_ref coffee_martini 1 30000 2.5 2.0 1200
 # render_ref discussion 1 30000 2.2 1.9 900
 # render_ref taekwondo 1 30000 1.6 1.3 900
 # render_ref walking 1 30000 2.2 1.3 900
@@ -119,7 +119,7 @@ convert() {
 }
 # convert coffee_martini 1 30000 12 10 6 6 6
 data4sr() {
-    # render_gt $1
+    render_gt $1
     render_ref $1 $2
     warping_idx=$3
     quant_convert() {
@@ -134,12 +134,12 @@ data4sr() {
     quant_convert "$1" "14 13 13 13 4"
     quant_convert "$1" "10 7 7 7 4"
 }
-data4sr "coffee_martini 1 30000" "2.5 2.0 900" 00000
-data4sr "cook_spinach 1 30000" "2.5 2.0 900" 00000
-data4sr "cut_roasted_beef 1 30000" "2.5 2.0 900" 00000
-data4sr "flame_salmon_1 1 30000" "2.5 2.0 900" 00000
-data4sr "flame_steak 1 30000" "2.5 2.0 900" 00000
-data4sr "sear_steak 1 30000" "2.5 2.0 900" 00000
+data4sr "coffee_martini 1 30000" "2.5 2.0 1200" 00000
+data4sr "cook_spinach 1 30000" "2.5 2.0 1200" 00000
+data4sr "cut_roasted_beef 1 30000" "2.5 2.0 1200" 00000
+data4sr "flame_salmon_1 1 30000" "2.5 2.0 1200" 00000
+data4sr "flame_steak 1 30000" "2.5 2.0 1200" 00000
+data4sr "sear_steak 1 30000" "2.5 2.0 1200" 00000
 
 data4sr "discussion 1 30000" "2.2 1.9 900" 00000
 data4sr "stepin 1 30000" "2.2 1.9 900" 00000
