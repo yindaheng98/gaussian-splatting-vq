@@ -349,11 +349,29 @@
             "justMyCode": false,
             "args": [
                 "--cameras",
-                "saved_data/00016.txt",
+                "saved_data/test.txt",
                 "--video",
                 "output/coffee_martini",
                 "--sh-degree",
                 "2",
+                "--codebooks",
+                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000"
+            ]
+        },
+        {
+            "name": "prediction",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "prediction.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--cameras",
+                "saved_data/test.txt",
+                "--video",
+                "output/coffee_martini",
+                "--sh-degree",
+                "2"
             ]
         },
         {
