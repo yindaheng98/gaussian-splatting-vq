@@ -25,6 +25,7 @@ parser.add_argument("--prediction-length", type=int, default=5)
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
 parser.add_argument("--max-frame", type=int, default=30)
+parser.add_argument("--codebooks", type=str, required=True)
 
 
 class Camera(NamedTuple):
@@ -123,14 +124,14 @@ def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelinePar
         return visible
 
 
-def culling(client_gaussians: GaussianModel, server_gaussians: GaussianModel, visible):
-    client_gaussians._xyz = server_gaussians._xyz[visible, ...]
-    client_gaussians._features_dc = server_gaussians._features_dc[visible, ...]
-    client_gaussians._features_rest = server_gaussians._features_rest[visible, ...]
-    client_gaussians._scaling = server_gaussians._scaling[visible, ...]
-    client_gaussians._rotation = server_gaussians._rotation[visible, ...]
-    client_gaussians._opacity = server_gaussians._opacity[visible, ...]
-    client_gaussians.max_radii2D = server_gaussians.max_radii2D[visible, ...]
+def culling(dst_gaussians: GaussianModel, src_gaussians: GaussianModel, visible):
+    dst_gaussians._xyz = src_gaussians._xyz[visible, ...]
+    dst_gaussians._features_dc = src_gaussians._features_dc[visible, ...]
+    dst_gaussians._features_rest = src_gaussians._features_rest[visible, ...]
+    dst_gaussians._scaling = src_gaussians._scaling[visible, ...]
+    dst_gaussians._rotation = src_gaussians._rotation[visible, ...]
+    dst_gaussians._opacity = src_gaussians._opacity[visible, ...]
+    dst_gaussians.max_radii2D = src_gaussians.max_radii2D[visible, ...]
 
 
 def frustum_culling(client_gaussians: GaussianModel, server_gaussians: GaussianModel, camera: Camera, pipeline: PipelineParams):
@@ -262,12 +263,6 @@ def init_gaussians(gaussians: VQGaussianModel, init_path=None):
     init_attr(Attribute.opacity)
 
 
-class LoDLoadConfig(NamedTuple):
-    reload_path: str
-    n_lod: int
-    codebook_dirpath: str
-
-
 lod_log2_clusters = {
     Attribute.features_dc:   [],
     Attribute.features_rest: [],
@@ -333,13 +328,43 @@ for i in range(2):
 # 共48个LoD
 
 
+class LoDLoadConfig(NamedTuple):
+    reload_path: str
+    n_lod: int
+    codebook_dirpath: str
+
+
 def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMeansGaussianModel, config: LoDLoadConfig):
-    # TODO: load VQ LoD 数据
-    pass
+    init_gaussians(gaussians, init_path=config.reload_path)  # 先全清零
+
+    for lod in range(config.n_lod):  # 一个一个LoD的来
+        should_load = current_lods == lod  # 有哪些位于这个LoD
+        if should_load.sum() <= 0:  # 这个LoD没有参数就退出
+            continue
+
+        def load_attr(attr: Attribute, config: LoDLoadConfig, i=0):
+            log2_clusters = lod_log2_clusters[attr][lod]  # 这个LoD的这个参数对应哪一级量化
+            if log2_clusters <= 0:
+                return
+            loader.load_codebook(config.codebook_dirpath, log2_clusters=log2_clusters, attr=attr, i=i)  # 加载对应的codebook
+            loader.test(attr, i=i)  # 执行量化
+            data = gaussians.get_data(attr=attr, i=i)
+            data[should_load] = loader.get_data(attr=attr, i=i)[should_load]  # 给对应的LoD赋值
+            gaussians.set_data(attr=attr, kdata=data, i=i)
+        loader.load_ply(config.reload_path)
+        load_attr(Attribute.features_dc, config)
+        load_attr(Attribute.features_rest, config)
+        load_attr(Attribute.scaling, config)
+        load_attr(Attribute.rotation, config)
+        load_attr(Attribute.opacity, config)
+
+    culling(gaussians, gaussians, current_lods >= 0)  # 裁剪掉没有LoD的
+    return gaussians
 
 
+n_lod = 32
 lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
-lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, 32)]
+lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, n_lod)]
 bitlimit = 2**20  # 30Mbps & 30FPS
 
 if __name__ == "__main__":
@@ -381,8 +406,9 @@ if __name__ == "__main__":
         # TODO: 读取带宽数据
         current_lods, bitlimit_rest, should_reload = compute_next_lod(bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians)  # 决策量化级别, 预测视角内塞满带宽
         update_visible_different_to_last(client_gaussians, last_gaussians, should_reload)
-        load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
-        # TODO: 按照量化级别执行反量化
+        # load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
+        load_lod(client_gaussians, current_lods, client_gaussians_vqloader,
+                 config=LoDLoadConfig(reload_path=frame_ply, n_lod=n_lod, codebook_dirpath=args.codebooks))  # 按照量化级别执行反量化
         for j in range(args.prediction_length):
             n_render = j + 1
             print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
