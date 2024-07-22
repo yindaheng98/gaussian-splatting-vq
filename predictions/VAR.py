@@ -24,7 +24,7 @@ def predict_var_model(model: VARResults, pose_history, prediction_stride, predic
     Q = matrix_to_quaternion(R)
     data = torch.concat((Q, T), dim=-1).cpu().numpy()
     pred = model.forecast(data, steps=prediction_stride + prediction_length)
-    Q = pred[..., :4]
-    T = pred[..., 4:]
-    R = quaternion_to_matrix(torch.from_numpy(Q))
+    Q = pred[prediction_stride:, :4]
+    T = torch.tensor(pred[prediction_stride:, 4:], device=R.device, dtype=R.dtype)
+    R = quaternion_to_matrix(torch.tensor(Q, device=R.device, dtype=R.dtype))
     return {'R': R, 'T': T}

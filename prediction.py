@@ -44,4 +44,6 @@ if __name__ == "__main__":
             break
         print(f"{timestamp:.4f}", "frame", n_frame, "loading")
         pose_prediction = predict_var_model(model, pose_history, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
-        print(pose_prediction)
+        mse_R = torch.sqrt(((pose_groundtruth['R'] - pose_prediction['R'])**2).mean())
+        mse_T = torch.sqrt(((pose_groundtruth['T'] - pose_prediction['T'])**2).mean())
+        print(mse_R, mse_T)
