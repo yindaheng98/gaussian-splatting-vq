@@ -21,6 +21,9 @@ if __name__ == "__main__":
     scaling_sum = torch.sum(gaussians._scaling.detach(), dim=1)
     opacity = gaussians.get_opacity.detach().squeeze(-1)
     score = torch.log(opacity)+scaling_sum
+    if score.shape[0] < args.target:
+        gaussians.save_ply(args.save)
+        exit()
     topk = torch.topk(score, args.target)
     top = topk.values[-1].item()
     visible = score > top
