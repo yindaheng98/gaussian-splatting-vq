@@ -20,6 +20,8 @@ build_all_attr() {
     build $1 $2 $3 $4 rotation
     build $1 $2 $3 $4 features_dc
     build $1 $2 $3 $4 features_rest 0
+    build $1 $2 $3 $4 features_rest 1
+    # build $1 $2 $3 $4 features_rest 2
     build $1 $2 $3 $4 opacity
 }
 build_all_precision() {
@@ -39,3 +41,6 @@ build_all_precision discussion 1 30000
 build_all_precision stepin 1 30000
 build_all_precision trimming 1 30000
 build_all_precision vrheadset 1 30000
+
+build_all_precision taekwondo 1 30000
+build_all_precision walking 1 30000

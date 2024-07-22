@@ -103,7 +103,19 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
             raise ValueError("Not supported")
         return name
 
+    def _get_features_rest(self, i=0):
+        features_rest = self._features_rest.detach()
+        match i:
+            case 0:
+                return features_rest[:, 0:3, ...].reshape(features_rest.shape[0], -1)
+            case 1:
+                return features_rest[:, 3:8, ...].reshape(features_rest.shape[0], -1)
+            case 2:
+                return features_rest[:, 8:15, ...].reshape(features_rest.shape[0], -1)
+
     def get_data(self, attr: Attribute, i=0):
+        if attr == Attribute.features_rest:
+            return self._get_features_rest(i=i)
         data = getattr(self, "_" + str(attr)).detach()
         if data.ndim <= 2:
             kdata = data
@@ -144,19 +156,31 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
     def quantize(self, attr: Attribute, i=0):
         pass
 
+    def _set_features_rest(self, kdata, i=0):
+        with torch.no_grad():
+            features_rest = self._features_rest
+            match i:
+                case 0:
+                    features_rest[:, 0:3, ...] = kdata.reshape(features_rest.shape[0], 3, -1)
+                case 1:
+                    features_rest[:, 3:8, ...] = kdata.reshape(features_rest.shape[0], 5, -1)
+                case 2:
+                    features_rest[:, 8:15, ...] = kdata.reshape(features_rest.shape[0], 7, -1)
+
     def set_data(self, attr: Attribute, kdata, i=0):
+        if attr == Attribute.features_rest:
+            return self._set_features_rest(kdata=kdata, i=i)
         data = getattr(self, "_" + str(attr))
-        data.requires_grad_(False)
-        if data.ndim <= 2:
-            data[...] = kdata
-        elif data.ndim == 3:
-            if data.shape[1] == 1:
-                data[:, 0, ...] = kdata
+        with torch.no_grad():
+            if data.ndim <= 2:
+                data[...] = kdata
+            elif data.ndim == 3:
+                if data.shape[1] == 1:
+                    data[:, 0, ...] = kdata
+                else:
+                    data[:, i, ...] = kdata
             else:
-                data[:, i, ...] = kdata
-        else:
-            raise ValueError("Not supported")
-        data.requires_grad_(True)
+                raise ValueError("Not supported")
 
     xyz_tile_size = np.array([4, 4, 4])
 
