@@ -24,8 +24,7 @@ if __name__ == "__main__":
     if score.shape[0] < args.target:
         gaussians.save_ply(args.save)
         exit()
-    topk = torch.topk(score, args.target, largest=False)
-    # topk = torch.topk(score, args.target)
+    topk = torch.topk(score, args.target)
     top = topk.values[-1].item()
     visible = score > top
     print(visible.shape[0], "->", visible.sum())
