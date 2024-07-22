@@ -178,7 +178,15 @@
                 "--iteration",
                 "30000",
                 "--skip_train",
-                "--render_train_interp"
+                "--render_train_interp",
+                "--forcefovx",
+                "2",
+                "--forcefovy",
+                "2",
+                "--forcewidth",
+                "600",
+                "--forceheight",
+                "600",
             ]
         },
         {
@@ -369,10 +377,60 @@
             "justMyCode": false,
             "args": [
                 "--local",
-                "output/coffee_martini/frame1/train/ours_30000/renders/00001",
+                "output/vq-coffee_martini/frame1/train_interp/ours_30000/renders/00001",
                 "--reference",
-                "output/coffee_martini/frame1/train/ours_30000/renders/00000",
-                "--debug"
+                "output/coffee_martini/frame1/train_interp/ours_30000/renders/00000",
+                "--warped",
+                "output/coffee_martini/frame1/train_interp/ours_30000/warped/00001",
+                // "--debug"
+            ]
+        },
+        {
+            "name": "resize",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/resize_like.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--read",
+                "output/coffee_martini/frame1/train_interp/ours_30000/renders/00001.png",
+                "--like",
+                "output/vq-coffee_martini/frame1/train_interp/ours_30000/renders/00000.png",
+                "--save",
+                "output/vq-coffee_martini/frame1/train_interp/ours_30000/nowarp/00000.png",
+                "--scale",
+                "0.25"
+            ]
+        },
+        {
+            "name": "prune",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "prune.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--read",
+                "output/coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
+                "--sh-degree",
+                "2",
+                "--save",
+                "output/prune-coffee_martini/frame1/point_cloud/iteration_30000/point_cloud.ply",
+            ]
+        },
+        {
+            "name": "metrics",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/metrics.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--images",
+                "output/prune-coffee_martini/frame1-100000/train_interp/ours_30000/renders",
+                "--gt",
+                "output/coffee_martini/frame1/train_interp/ours_30000/renders",
             ]
         },
         {

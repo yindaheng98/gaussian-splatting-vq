@@ -35,7 +35,7 @@ def spatial_merge(blkids: torch.Tensor, rests: torch.Tensor, xyz_tile_size):
 
 
 def spatial_split_octree(xyz: torch.Tensor, xyz_tile_size_base=[1, 1, 1], xyz_tile_size_maxlevel=4, split_thr=5e3):
-    tile_size_base = torch.from_numpy(np.asarray(xyz_tile_size_base[:3])).to(xyz.device)
+    tile_size_base = torch.from_numpy(np.asarray(xyz_tile_size_base[:3])).to(torch.int32).to(xyz.device)
     octree_blkids = torch.IntTensor(size=xyz.shape).to(device=xyz.device)
     octree_blksizes = torch.IntTensor(size=xyz.shape).to(device=xyz.device)
     octree_rests = torch.zeros_like(xyz)
