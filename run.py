@@ -359,6 +359,7 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
         load_attr(Attribute.opacity, config)
 
     culling(gaussians, gaussians, current_lods >= 0)  # 裁剪掉没有LoD的
+    gaussians._xyz = loader._xyz[current_lods >= 0]
     return gaussians
 
 
