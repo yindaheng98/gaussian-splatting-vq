@@ -1,6 +1,9 @@
 import os
 import argparse
 import torch
+import pandas
+import numpy as np
+from predictions.VAR import get_var_model, predict_var_model
 from typing import NamedTuple, List
 from scene.camera_dataset import CameraPoseDataset, Pose
 from gaussian_renderer import render, GaussianModel
@@ -33,10 +36,12 @@ if __name__ == "__main__":
     frame_stride = 1/args.fps
     last_frame = None
     server_gaussians = GaussianModel(args.sh_degree)
+    model = get_var_model(args.cameras)
     for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
         if n_frame > args.max_frame:
             break
         print(f"{timestamp:.4f}", "frame", n_frame, "loading")
-        
+        pose_prediction = predict_var_model(model, pose_history, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
+        print(pose_prediction)
