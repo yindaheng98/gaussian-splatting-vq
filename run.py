@@ -115,7 +115,7 @@ def warp(uv, color_ref, depth):
     # warped[mask_occluded, :] = torch.tensor([0, 255, 0], dtype=warped.dtype)  # debug
     # warped[mask_occlude, :] = torch.tensor([0, 0, 255], dtype=warped.dtype)  # debug
     warped[is_edge, ...] = 0
-    return warped
+    return warped, is_edge
 
 
 def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
@@ -123,8 +123,8 @@ def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
     xyz = reconstrucion(K, R_c2w, T_c2w, depth)
     K_r, R_r, t_r, _, _ = fromJSON(camera2view(camera_ref).toJSON(0))
     uv, z = projection(K_r, R_r, t_r, xyz)
-    warped = warp(uv, color_ref, z)  # wrap it
-    return warped
+    warped, is_edge = warp(uv, color_ref.permute(1, 2, 0), z)  # wrap it
+    return warped.permute(2, 0, 1), is_edge
 
 
 def show3images(distorted_image, reference_image, warpedref_image):
@@ -488,8 +488,9 @@ if __name__ == "__main__":
                     T=pose_groundtruth["T"][j, ...]),
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
-            warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
+            warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
+            print("Missing pixels", is_edge.sum().item())
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
             save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_render)  # debug
