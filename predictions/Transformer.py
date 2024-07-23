@@ -24,6 +24,8 @@ model_dict = {
 
 
 class TransformerPrediction(Prediction):
+    fps = 90
+
     def __init__(self, path):
         super().__init__()
         args = parser.parse_args(args=[
@@ -84,3 +86,50 @@ class TransformerPrediction(Prediction):
                                                                                                       args.des, ii)
 
         self.model.load_state_dict(torch.load(os.path.join('./predictions/Autoformer/checkpoints/' + setting, 'checkpoint.pth')))
+        self.freq = args.freq
+        self.args = args
+        self.seq_len = args.seq_len
+        self.label_len = args.label_len
+        self.pred_len = args.pred_len
+        self.model.eval()
+
+    def predict(self, pose_history, prediction_stride, prediction_length):
+        R = pose_history['R']
+        T = pose_history['T']
+        Q = matrix_to_quaternion(R)
+        data = torch.concat((T, Q), dim=-1)
+        data = torch.concat((data, torch.zeros(size=(prediction_stride + prediction_length, data.shape[1]), dtype=data.dtype, device=data.device)), dim=0)
+        ts = torch.concat((pose_history['timestamp'], pose_history['pred_timestamp']), dim=0)
+        data_stamp = time_features(pd.to_datetime(ts.cpu().numpy() * self.fps, unit=self.freq), freq=self.freq)
+        data_stamp = torch.tensor(data_stamp.transpose(1, 0))
+
+        batch_x = data.float().to('cuda')
+        batch_y = data.float().to('cuda')
+        batch_x_mark = data_stamp.float().to('cuda')
+        batch_y_mark = data_stamp.float().to('cuda')
+        self.model.pred_len = prediction_length + prediction_stride
+        self.model.label_len = R.shape[0]
+        self.args.pred_len = prediction_length + prediction_stride
+        self.args.label_len = R.shape[0]
+        pred = self._predict(batch_x, batch_y, batch_x_mark, batch_y_mark).squeeze(0).detach().cpu().numpy()
+        Q = pred[prediction_stride:, 3:]
+        T = torch.tensor(pred[prediction_stride:, :3], device=R.device, dtype=R.dtype)
+        R = quaternion_to_matrix(torch.tensor(Q, device=R.device, dtype=R.dtype))
+        return {'R': R, 'T': T}
+
+    def _predict(self, batch_x, batch_y, batch_x_mark, batch_y_mark):
+        # encoder - decoder
+
+        def _run_model():
+            outputs = self.model(batch_x.unsqueeze(0), batch_x_mark.unsqueeze(0), batch_y.unsqueeze(0), batch_y_mark.unsqueeze(0))
+            if self.args.output_attention:
+                outputs = outputs[0]
+            return outputs
+
+        if self.args.use_amp:
+            with torch.cuda.amp.autocast():
+                outputs = _run_model()
+        else:
+            outputs = _run_model()
+
+        return outputs
