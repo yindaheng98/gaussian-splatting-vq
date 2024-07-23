@@ -145,7 +145,7 @@ def compute_enlarge(camera: Camera, depth, camera_ref: Camera, color_ref):
     is_edge |= uv_idx[..., 0] >= width - 1
     w_enlarge = max(-uv_idx[..., 0].min(), uv_idx[..., 0].max() - width + 1)
     h_enlarge = max(-uv_idx[..., 1].min(), uv_idx[..., 1].max() - height + 1)
-    return is_edge, w_enlarge*2/width + 1, h_enlarge*2/width + 1
+    return is_edge, w_enlarge*2/width + 1, h_enlarge*2/height + 1
 
 
 def show3images(distorted_image, reference_image, warpedref_image):
@@ -511,6 +511,7 @@ if __name__ == "__main__":
         for j in range(args.prediction_length):
             n_render = j + 1
             print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
+
             groundtruth_camera = Camera(
                 pose=Pose(
                     timestamp=pose_groundtruth["timestamp"][j].item(),
@@ -522,12 +523,24 @@ if __name__ == "__main__":
             is_edge, w_enlarge_, h_enlarge_ = compute_enlarge(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             w_enlarge = max(w_enlarge, w_enlarge_)
             h_enlarge = max(h_enlarge, h_enlarge_)
-            groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             print("Missing pixels", is_edge.sum().item())
             total_missing_pixels += is_edge.sum().item()
+
+            enlarge_camera = Camera(
+                pose=Pose(
+                    timestamp=pose_history["timestamp"][-1],
+                    R=pose_prediction["R"][-1, ...],
+                    T=pose_prediction["T"][-1, ...]),
+                fovx=math.atan(w_enlarge_*math.tan(args.fovx)), fovy=math.atan(h_enlarge_*math.tan(args.fovy)),
+                width=args.width//4, height=args.height//4)
+            enlargeref_image, _ = render_frame(enlarge_camera, server_gaussians, pipeline)
+            warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
+            print("Missing pixels after enlarge", is_edge.sum().item())
+
+            groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
-            save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_render)  # debug
+            save2images(distorted_image, warpedref_image, warpedref_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
