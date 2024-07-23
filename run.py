@@ -12,6 +12,7 @@ from utils.system_utils import searchForMaxIteration
 from warping import fromJSON, reconstrucion, projection, warp
 from predictions.base import Prediction
 from predictions.VAR import VARPrediction
+from predictions.Transformer import TransformerPrediction
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -370,7 +371,7 @@ if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
-    prediction = VARPrediction(args.cameras)
+    prediction = TransformerPrediction(args.cameras)
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
@@ -394,7 +395,7 @@ if __name__ == "__main__":
                 timestamp=pose_history["timestamp"][-1],
                 R=pose_prediction["R"][-1, ...],
                 T=pose_prediction["T"][-1, ...]),
-            fovx=args.fovx + 0.1, fovy=args.fovy + 0.1, width=args.width//4, height=args.height//4)
+            fovx=args.fovx, fovy=args.fovy, width=args.width//4, height=args.height//4)
         frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
         n_iter = searchForMaxIteration(frame_folder)
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
