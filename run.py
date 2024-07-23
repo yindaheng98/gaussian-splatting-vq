@@ -24,8 +24,8 @@ parser.add_argument("--height", type=float, default=1200, help="Camera height.")
 parser.add_argument("--buffersize", type=int, default=10, help="Camera buffer size.")
 parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
 parser.add_argument("--history-size", type=int, default=15)
-parser.add_argument("--prediction-stride", type=int, default=5)
-parser.add_argument("--prediction-length", type=int, default=5)
+parser.add_argument("--prediction-stride", type=int, default=9)  # 本地缓存3帧
+parser.add_argument("--prediction-length", type=int, default=3)  # 每帧给3帧用
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
 parser.add_argument("--max-frame", type=int, default=30)
