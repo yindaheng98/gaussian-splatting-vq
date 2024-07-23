@@ -346,7 +346,7 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
             if log2_clusters <= 0:
                 return
             loader.load_codebook(config.codebook_dirpath, log2_clusters=log2_clusters, attr=attr, i=i)  # 加载对应的codebook
-            loader.test(attr, i=i)  # 执行量化
+            loader.dequantize(attr=attr, quant=loader.quantize(attr=attr, i=i))  # 执行量化
             data = gaussians.get_data(attr=attr, i=i)
             data[should_load] = loader.get_data(attr=attr, i=i)[should_load]  # 给对应的LoD赋值
             gaussians.set_data(attr=attr, kdata=data, i=i)
