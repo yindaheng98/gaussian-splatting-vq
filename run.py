@@ -1,3 +1,4 @@
+import math
 import os
 import argparse
 import torch
@@ -75,6 +76,8 @@ def warp(uv, color_ref, depth):
     is_edge |= uv_idx[..., 1] >= height - 1
     is_edge |= uv_idx[..., 0] < 0
     is_edge |= uv_idx[..., 0] >= width - 1
+    w_enlarge = max(-uv_idx[..., 0].min(), uv_idx[..., 0].max() - width + 1)
+    h_enlarge = max(-uv_idx[..., 1].min(), uv_idx[..., 1].max() - height + 1)
     uv_idx[..., 1].clamp_(0, height-1)
     uv_idx[..., 0].clamp_(0, width-1)
     warped = color_ref[uv_idx[..., 1], uv_idx[..., 0], ...]
@@ -116,7 +119,7 @@ def warp(uv, color_ref, depth):
     # warped[mask_occluded, :] = torch.tensor([0, 255, 0], dtype=warped.dtype)  # debug
     # warped[mask_occlude, :] = torch.tensor([0, 0, 255], dtype=warped.dtype)  # debug
     warped[is_edge, ...] = 0
-    return warped, is_edge
+    return warped, is_edge, (w_enlarge*2/width + 1, h_enlarge*2/width + 1)
 
 
 def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
@@ -124,8 +127,8 @@ def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
     xyz = reconstrucion(K, R_c2w, T_c2w, depth)
     K_r, R_r, t_r, _, _ = fromJSON(camera2view(camera_ref).toJSON(0))
     uv, z = projection(K_r, R_r, t_r, xyz)
-    warped, is_edge = warp(uv, color_ref.permute(1, 2, 0), z)  # wrap it
-    return warped.permute(2, 0, 1), is_edge
+    warped, is_edge, enlarge = warp(uv, color_ref.permute(1, 2, 0), z)  # wrap it
+    return warped.permute(2, 0, 1), is_edge, enlarge
 
 
 def show3images(distorted_image, reference_image, warpedref_image):
@@ -487,6 +490,7 @@ if __name__ == "__main__":
         load_lod(client_gaussians, current_lods, client_gaussians_vqloader,
                  config=LoDLoadConfig(reload_path=frame_ply, n_lod=n_lod, codebook_dirpath=args.codebooks))  # 按照量化级别执行反量化
         total_missing_pixels = 0
+        w_enlarge, h_enlarge = 0, 0
         for j in range(args.prediction_length):
             n_render = j + 1
             print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
@@ -497,7 +501,9 @@ if __name__ == "__main__":
                     T=pose_groundtruth["T"][j, ...]),
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
-            warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+            warpedref_image, is_edge, (w_enlarge_, h_enlarge_) = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+            w_enlarge = max(w_enlarge, w_enlarge_)
+            h_enlarge = max(h_enlarge, h_enlarge_)
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             print("Missing pixels", is_edge.sum().item())
             total_missing_pixels += is_edge.sum().item()
@@ -506,6 +512,8 @@ if __name__ == "__main__":
             save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
+        print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
+        print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
         print("speed", speed.item(), "Missing", total_missing_pixels)
 
     if videoout is not None:
