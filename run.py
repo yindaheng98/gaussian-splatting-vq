@@ -76,8 +76,8 @@ def warp(uv, color_ref, depth):
     is_edge |= uv_idx[..., 1] >= height - 1
     is_edge |= uv_idx[..., 0] < 0
     is_edge |= uv_idx[..., 0] >= width - 1
-    w_enlarge = max(-uv_idx[..., 0].min(), uv_idx[..., 0].max() - width + 1)
-    h_enlarge = max(-uv_idx[..., 1].min(), uv_idx[..., 1].max() - height + 1)
+    # w_enlarge = max(-uv_idx[..., 0].min(), uv_idx[..., 0].max() - width + 1)
+    # h_enlarge = max(-uv_idx[..., 1].min(), uv_idx[..., 1].max() - height + 1)
     uv_idx[..., 1].clamp_(0, height-1)
     uv_idx[..., 0].clamp_(0, width-1)
     warped = color_ref[uv_idx[..., 1], uv_idx[..., 0], ...]
@@ -119,7 +119,7 @@ def warp(uv, color_ref, depth):
     # warped[mask_occluded, :] = torch.tensor([0, 255, 0], dtype=warped.dtype)  # debug
     # warped[mask_occlude, :] = torch.tensor([0, 0, 255], dtype=warped.dtype)  # debug
     warped[is_edge, ...] = 0
-    return warped, is_edge, (w_enlarge*2/width + 1, h_enlarge*2/width + 1)
+    return warped, is_edge
 
 
 def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
@@ -127,8 +127,25 @@ def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
     xyz = reconstrucion(K, R_c2w, T_c2w, depth)
     K_r, R_r, t_r, _, _ = fromJSON(camera2view(camera_ref).toJSON(0))
     uv, z = projection(K_r, R_r, t_r, xyz)
-    warped, is_edge, enlarge = warp(uv, color_ref.permute(1, 2, 0), z)  # wrap it
-    return warped.permute(2, 0, 1), is_edge, enlarge
+    warped, is_edge = warp(uv, color_ref.permute(1, 2, 0), z)  # wrap it
+    return warped.permute(2, 0, 1), is_edge
+
+
+def compute_enlarge(camera: Camera, depth, camera_ref: Camera, color_ref):
+    K, R_c2w, T_c2w, _, _ = fromJSON(camera2view(camera).toJSON(0))
+    xyz = reconstrucion(K, R_c2w, T_c2w, depth)
+    K_r, R_r, t_r, _, _ = fromJSON(camera2view(camera_ref).toJSON(0))
+    uv, z = projection(K_r, R_r, t_r, xyz)
+    height, width = color_ref.permute(1, 2, 0).shape[:2]
+    uv_idx = uv[..., :2]
+    uv_idx = uv_idx.round().type(torch.int64)
+    is_edge = uv_idx[..., 1] < 0
+    is_edge |= uv_idx[..., 1] >= height - 1
+    is_edge |= uv_idx[..., 0] < 0
+    is_edge |= uv_idx[..., 0] >= width - 1
+    w_enlarge = max(-uv_idx[..., 0].min(), uv_idx[..., 0].max() - width + 1)
+    h_enlarge = max(-uv_idx[..., 1].min(), uv_idx[..., 1].max() - height + 1)
+    return is_edge, w_enlarge*2/width + 1, h_enlarge*2/width + 1
 
 
 def show3images(distorted_image, reference_image, warpedref_image):
@@ -501,7 +518,8 @@ if __name__ == "__main__":
                     T=pose_groundtruth["T"][j, ...]),
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
-            warpedref_image, is_edge, (w_enlarge_, h_enlarge_) = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+            warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+            is_edge, w_enlarge_, h_enlarge_ = compute_enlarge(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             w_enlarge = max(w_enlarge, w_enlarge_)
             h_enlarge = max(h_enlarge, h_enlarge_)
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
