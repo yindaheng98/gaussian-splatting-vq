@@ -534,13 +534,13 @@ if __name__ == "__main__":
                 fovx=math.atan(w_enlarge_*math.tan(args.fovx)), fovy=math.atan(h_enlarge_*math.tan(args.fovy)),
                 width=args.width//4, height=args.height//4)
             enlargeref_image, _ = render_frame(enlarge_camera, server_gaussians, pipeline)
-            warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
+            warpedenlargref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
             print("Missing pixels after enlarge", is_edge.sum().item())
 
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
-            save2images(distorted_image, warpedref_image, warpedref_image, n_frame, n_render)  # debug
+            save2images(distorted_image, warpedref_image, warpedenlargref_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
