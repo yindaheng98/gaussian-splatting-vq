@@ -372,6 +372,7 @@ if __name__ == "__main__":
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
     prediction = TransformerPrediction(args.cameras)
+    # prediction = VARPrediction(args.cameras)
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
@@ -390,6 +391,8 @@ if __name__ == "__main__":
             prediction, pose_history,
             prediction_stride=args.prediction_stride, prediction_length=args.prediction_length,
             fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        print(torch.abs(pose_prediction["R"] - pose_groundtruth["R"]).mean())
+        print(torch.abs(pose_prediction["T"] - pose_groundtruth["T"]).mean())
         prediction_camera = Camera(
             pose=Pose(
                 timestamp=pose_history["timestamp"][-1],
