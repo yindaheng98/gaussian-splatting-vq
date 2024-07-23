@@ -238,7 +238,7 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
 
     def test(self, attr: Attribute, i=0):
         data = self.get_data(attr, i).detach().clone()
-        self.dequantize(attr, self.quantize(attr, i))
+        self.dequantize(attr, self.quantize(attr, i), i)
         dequantized = self.get_data(attr, i).detach()
         mean = torch.abs(data).mean(dim=0).cpu().numpy()
         mean_dequantized = torch.abs(dequantized).mean(dim=0).cpu().numpy()
