@@ -10,6 +10,8 @@ from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
 from warping import fromJSON, reconstrucion, projection, warp
+from predictions.base import Prediction
+from predictions.VAR import VARPrediction
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -45,13 +47,9 @@ def camera2view(camera: Camera):
                 image_width=camera.width, image_height=camera.height)
 
 
-def predict_camera(pose_history, fovx: float, fovy: float, width: int, height: int):
-    return Camera(
-        pose=Pose(
-            timestamp=pose_history["timestamp"][-1],
-            R=pose_history["R"][-1, ...],
-            T=pose_history["T"][-1, ...]),
-        fovx=fovx + 0.1, fovy=fovy + 0.1, width=width//4, height=height//4)
+def predict_camera(prediction: Prediction, pose_history, prediction_stride, prediction_length, fovx: float, fovy: float, width: int, height: int):
+    pose_pred = prediction.predict(pose_history, prediction_stride, prediction_length)
+    return pose_pred
 
 
 def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
@@ -366,12 +364,13 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
 n_lod = 32
 lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
 lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, n_lod)]
-bitlimit = 2**20  # 30Mbps & 30FPS
+bitlimit = 5*2**20  # 5x30Mbps & 30FPS
 
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
+    prediction = VARPrediction(args.cameras)
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
@@ -386,7 +385,16 @@ if __name__ == "__main__":
         if n_frame > args.max_frame:
             break
         print(f"{timestamp:.4f}", "frame", n_frame, "loading")
-        prediction_camera = predict_camera(pose_history, fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        pose_prediction = predict_camera(
+            prediction, pose_history,
+            prediction_stride=args.prediction_stride, prediction_length=args.prediction_length,
+            fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
+        prediction_camera = Camera(
+            pose=Pose(
+                timestamp=pose_history["timestamp"][-1],
+                R=pose_prediction["R"][-1, ...],
+                T=pose_prediction["T"][-1, ...]),
+            fovx=args.fovx + 0.1, fovy=args.fovy + 0.1, width=args.width//4, height=args.height//4)
         frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
         n_iter = searchForMaxIteration(frame_folder)
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
