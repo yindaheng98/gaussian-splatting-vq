@@ -441,8 +441,8 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
 
 def rotate_speed(Rs: torch.Tensor):
     Qs = matrix_to_quaternion(Rs)
-    speeds = torch.sqrt(((Qs[1:] - Qs[:-1])**2).sum(dim=1))
-    return speeds.max()
+    speeds = Qs.max(dim=0).values - Qs.min(dim=0).values
+    return speeds
 
 
 n_lod = 32
@@ -545,7 +545,7 @@ if __name__ == "__main__":
             # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
         print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
-        print("speed", speed.item(), "Missing", total_missing_pixels)
+        print("speed", speed, "enlarge", w_enlarge, h_enlarge, "Missing", total_missing_pixels)
 
     if videoout is not None:
         videoout.release()
