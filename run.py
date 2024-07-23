@@ -13,6 +13,7 @@ from warping import MorphologyClose, error_erosion, fromJSON, is_occlusion, reco
 from predictions.base import Prediction
 from predictions.VAR import VARPrediction
 from predictions.Transformer import TransformerPrediction
+from utils.camera_utils import matrix_to_quaternion
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -71,9 +72,9 @@ def warp(uv, color_ref, depth):
     uv_idx = uv[..., :2]
     uv_idx = uv_idx.round().type(torch.int64)
     is_edge = uv_idx[..., 1] < 0
-    is_edge |= uv_idx[..., 1] >= height
+    is_edge |= uv_idx[..., 1] >= height - 1
     is_edge |= uv_idx[..., 0] < 0
-    is_edge |= uv_idx[..., 1] >= width
+    is_edge |= uv_idx[..., 0] >= width - 1
     uv_idx[..., 1].clamp_(0, height-1)
     uv_idx[..., 0].clamp_(0, width-1)
     warped = color_ref[uv_idx[..., 1], uv_idx[..., 0], ...]
@@ -418,6 +419,12 @@ def load_lod(gaussians: VQGaussianModel, current_lods: torch.Tensor, loader: KMe
     return gaussians
 
 
+def rotate_speed(Rs: torch.Tensor):
+    Qs = matrix_to_quaternion(Rs)
+    speeds = torch.sqrt(((Qs[1:] - Qs[:-1])**2).sum(dim=1))
+    return speeds.max()
+
+
 n_lod = 32
 lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
 lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, n_lod)]
@@ -455,6 +462,7 @@ if __name__ == "__main__":
                 R=pose_prediction["R"][-1, ...],
                 T=pose_prediction["T"][-1, ...]),
             fovx=args.fovx, fovy=args.fovy, width=args.width//4, height=args.height//4)
+        speed = rotate_speed(pose_prediction["R"])
         frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
         n_iter = searchForMaxIteration(frame_folder)
         frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
@@ -478,6 +486,7 @@ if __name__ == "__main__":
         # load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
         load_lod(client_gaussians, current_lods, client_gaussians_vqloader,
                  config=LoDLoadConfig(reload_path=frame_ply, n_lod=n_lod, codebook_dirpath=args.codebooks))  # 按照量化级别执行反量化
+        total_missing_pixels = 0
         for j in range(args.prediction_length):
             n_render = j + 1
             print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
@@ -491,11 +500,13 @@ if __name__ == "__main__":
             warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             print("Missing pixels", is_edge.sum().item())
+            total_missing_pixels += is_edge.sum().item()
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
             save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
+        print("speed", speed.item(), "Missing", total_missing_pixels)
 
     if videoout is not None:
         videoout.release()
