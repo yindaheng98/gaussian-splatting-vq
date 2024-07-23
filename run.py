@@ -9,7 +9,7 @@ from scene.gaussian_kmeans import KMeansGaussianModel
 from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
-from warping import fromJSON, reconstrucion, projection, warp
+from warping import MorphologyClose, error_erosion, fromJSON, is_occlusion, reconstrucion, projection
 from predictions.base import Prediction
 from predictions.VAR import VARPrediction
 from predictions.Transformer import TransformerPrediction
@@ -62,6 +62,62 @@ def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelinePar
         return rendering, depth
 
 
+def warp(uv, color_ref, depth):
+    height, width = color_ref.shape[:2]
+    # done by grid_sample, same result, may be faster?
+    # grid = uv[..., :2] / torch.tensor([[[width, height]]]) * 2 - 1
+    # warped = F.grid_sample(color_ref.permute(2, 0, 1).unsqueeze(0).type(torch.float32), grid.unsqueeze(0),
+    #                        mode='bilinear', align_corners=True)[0, ...].type(torch.uint8).permute(1, 2, 0)
+    uv_idx = uv[..., :2]
+    uv_idx = uv_idx.round().type(torch.int64)
+    is_edge = uv_idx[..., 1] < 0
+    is_edge |= uv_idx[..., 1] >= height
+    is_edge |= uv_idx[..., 0] < 0
+    is_edge |= uv_idx[..., 1] >= width
+    uv_idx[..., 1].clamp_(0, height-1)
+    uv_idx[..., 0].clamp_(0, width-1)
+    warped = color_ref[uv_idx[..., 1], uv_idx[..., 0], ...]
+    # warped = torch.zeros_like(color_ref)  # inverse
+    # warped[uv_idx[..., 1], uv_idx[..., 0], ...] = color_ref  # inverse
+
+    mask_occluded, mask_occlude = is_occlusion(uv_idx, depth, height, width)
+    mask_occluded = MorphologyClose(mask_occluded)
+    mask_occlude = MorphologyClose(mask_occlude)
+    # warped[mask_occluded, :] = torch.tensor([0, 0, 255], dtype=warped.dtype)  # debug
+    # warped[mask_occlude, :] = torch.tensor([0, 255, 0], dtype=warped.dtype)  # debug
+    # return warped
+
+    # mask_occluded_last = mask_occluded.clone()  # debug
+    kernel_size, occluded_dilation_size, occlude_dilation_size = 8, 5, 5
+    warped, mask_occluded, validcount = error_erosion(
+        warped, mask_occluded, mask_occlude,
+        kernel_size=kernel_size,
+        occluded_dilation_size=occluded_dilation_size,
+        occlude_dilation_size=occlude_dilation_size)
+    # print(validcount, mask_occluded.sum())  # debug
+    while mask_occluded.sum() > 0 and validcount > 0:
+        warped, mask_occluded, validcount = error_erosion(
+            warped, mask_occluded, mask_occlude,
+            kernel_size=kernel_size,
+            occluded_dilation_size=occluded_dilation_size,
+            occlude_dilation_size=occlude_dilation_size)
+        # print(validcount, mask_occluded.sum())  # debug
+        if validcount <= 0:
+            occluded_dilation_size -= 1
+            occlude_dilation_size -= 1
+            warped, mask_occluded, validcount = error_erosion(
+                warped, mask_occluded, mask_occlude,
+                kernel_size=kernel_size,
+                occluded_dilation_size=occluded_dilation_size,
+                occlude_dilation_size=occlude_dilation_size)
+        # print(validcount, mask_occluded.sum())  # debug
+    # warped[mask_occluded_last, :] = torch.tensor([255, 0, 0], dtype=warped.dtype)  # debug
+    # warped[mask_occluded, :] = torch.tensor([0, 255, 0], dtype=warped.dtype)  # debug
+    # warped[mask_occlude, :] = torch.tensor([0, 0, 255], dtype=warped.dtype)  # debug
+    warped[is_edge, ...] = 0
+    return warped
+
+
 def warping_frame(camera: Camera, depth, camera_ref: Camera, color_ref):
     K, R_c2w, T_c2w, _, _ = fromJSON(camera2view(camera).toJSON(0))
     xyz = reconstrucion(K, R_c2w, T_c2w, depth)
@@ -99,10 +155,10 @@ def save2video(distorted_image, warpedref_image):
         videoout.write((frame.clamp(0, 1) * 255).type(torch.uint8).cpu().numpy())
 
 
-def save2images(distorted_image, warpedref_image, n_frame, n_render, folder="output/run"):
+def save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_render, folder="output/run"):
     os.makedirs(folder, exist_ok=True)
     import cv2
-    frame = torch.concat((distorted_image, warpedref_image), dim=1).permute(1, 2, 0)
+    frame = torch.concat((distorted_image, warpedref_image, groundtruth_image), dim=1).permute(1, 2, 0)
     frame_uint8 = (frame[..., [2, 1, 0]].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
     cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{n_render}.png"), frame_uint8)
 
@@ -371,8 +427,8 @@ if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
-    prediction = TransformerPrediction(args.cameras)
-    # prediction = VARPrediction(args.cameras)
+    # prediction = TransformerPrediction(args.cameras)
+    prediction = VARPrediction(args.cameras)
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
@@ -433,9 +489,10 @@ if __name__ == "__main__":
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
             warpedref_image = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image.permute(1, 2, 0)).permute(2, 0, 1)
+            groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
-            save2images(distorted_image, warpedref_image, n_frame, n_render)  # debug
+            save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_render)  # debug
             # TODO: 色彩恢复
             # TODO: 测质量
 
