@@ -237,7 +237,17 @@ class VQGaussianModel(GaussianModel, metaclass=abc.ABCMeta):
         pass
 
     def test(self, attr: Attribute, i=0):
+        data = self.get_data(attr, i).detach().clone()
         self.dequantize(attr, self.quantize(attr, i))
+        dequantized = self.get_data(attr, i).detach()
+        mean = torch.abs(data).mean(dim=0).cpu().numpy()
+        mean_dequantized = torch.abs(dequantized).mean(dim=0).cpu().numpy()
+        loss = torch.abs(dequantized - data).mean(dim=0).cpu().numpy()
+        self.set_data(attr, dequantized, i)
+        print(f"dequantized loss:       {loss}")
+        print(f"dequantized rel loss:   {loss / mean_dequantized}")
+        print(f"dequantized mean:       {mean_dequantized}")
+        print(f"dequantize  mean shift: {mean - mean_dequantized}")
 
     def load_vq_ply(self, path):
         xyz_rests, xyz_blkids, xyz_tile_size, scale, rotation, opacities, f_dc, f_rest = load_vq_ply_with_tileinfo(path)

@@ -59,14 +59,6 @@ class KMeansGaussianModel(VQGaussianModel):
 
     def dequantize(self, attr: Attribute, quant, i=0):
         kmeans = getattr(self, self.kmeans_varname(attr, i))
-        data = self.get_data(attr, i).detach()
+        print(f"dequantize by {self.kmeans_varname(attr, i)}.")
         dequantized = kmeans[quant]
-        mean = torch.abs(data).mean(dim=0).cpu().numpy()
-        mean_dequantized = torch.abs(dequantized).mean(dim=0).cpu().numpy()
-        loss = torch.abs(dequantized - data).mean(dim=0).cpu().numpy()
         self.set_data(attr, dequantized, i)
-        print(f"dequantized by {self.kmeans_varname(attr, i)}.")
-        print(f"dequantized loss:       {loss}")
-        print(f"dequantized rel loss:   {loss / mean_dequantized}")
-        print(f"dequantized mean:       {mean_dequantized}")
-        print(f"dequantize  mean shift: {mean - mean_dequantized}")
