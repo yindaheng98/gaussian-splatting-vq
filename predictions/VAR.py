@@ -2,6 +2,7 @@ import torch
 from statsmodels.tsa.api import VAR
 from scene.camera_dataset import CameraPoseDataset
 from utils.camera_utils import matrix_to_quaternion, quaternion_to_matrix
+from statsmodels.iolib.smpickle import load_pickle
 from .base import Prediction
 
 
@@ -27,3 +28,9 @@ class VARPrediction(Prediction):
         T = torch.tensor(pred[prediction_stride:, 4:], device=R.device, dtype=R.dtype)
         R = quaternion_to_matrix(torch.tensor(Q, device=R.device, dtype=R.dtype))
         return {'R': R, 'T': T}
+
+    def save(self, path):
+        self.model.save(path)
+
+    def load(self, path):
+        self.model = load_pickle(path)

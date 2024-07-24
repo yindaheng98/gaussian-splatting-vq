@@ -375,7 +375,9 @@
             "justMyCode": false,
             "args": [
                 "--cameras",
-                "saved_data/test.txt"
+                "saved_data/test.txt",
+                "--save",
+                "output/run/prediction.pth"
             ]
         },
         {

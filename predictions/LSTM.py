@@ -66,3 +66,11 @@ class LSTMPrediction(Prediction):
         Q[..., 0] += 1.
         R = quaternion_to_matrix(Q)
         return {'R': R @ var_pred['R'], 'T': T * 10 + var_pred['T']}
+
+    def save(self, path):
+        torch.save(self.lstm.state_dict(), path)
+        self.var.save(path + ".VAR.pickle")
+
+    def load(self, path):
+        self.lstm.load_state_dict(torch.load(path))
+        self.var.load(path + ".VAR.pickle")

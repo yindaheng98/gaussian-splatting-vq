@@ -16,6 +16,7 @@ parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
 parser.add_argument("--history-size", type=int, default=15)
 parser.add_argument("--prediction-stride", type=int, default=9)
 parser.add_argument("--prediction-length", type=int, default=3)
+parser.add_argument("--save", type=str, required=True)
 
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
@@ -42,3 +43,5 @@ if __name__ == "__main__":
         tmse_T = torch.sqrt(((pose_groundtruth['T'] - teacher_pose_prediction['T'])**2).mean())
         print(f"{timestamp:.4f}", "frame", n_frame, "loading", 'R mse', mse_R.item(), 'T mse', mse_T.item(), 'teacher R mse', tmse_R.item(), 'T mse', tmse_T.item())
         optimizer.step()
+    model.save(args.save)
+    teacher.save(args.save + ".teacher.pickle")
