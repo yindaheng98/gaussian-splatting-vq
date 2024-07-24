@@ -15,6 +15,8 @@ from predictions.base import Prediction
 from predictions.VAR import VARPrediction
 from predictions.Transformer import TransformerPrediction
 from utils.camera_utils import matrix_to_quaternion
+import pandas as pd
+from itertools import cycle
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -31,6 +33,7 @@ parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
 parser.add_argument("--max-frame", type=int, default=30)
 parser.add_argument("--codebooks", type=str, required=True)
+parser.add_argument("--bandwidth", type=str, default="saved_data/bandwidth.csv")
 
 
 class Camera(NamedTuple):
@@ -454,6 +457,8 @@ if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
+    bandwidth = pd.read_csv(args.bandwidth)["throughput_mbps"]
+    bandwidth_iter = cycle(bandwidth)
     # prediction = TransformerPrediction(args.cameras)
     prediction = VARPrediction(args.cameras)
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
@@ -500,8 +505,8 @@ if __name__ == "__main__":
         client_gaussians.load_ply(path=frame_ply)
         visible = mark_visible(prediction_camera, client_gaussians, pipeline)
         should_reload = mark_visible_different(client_gaussians, last_gaussians, visible)
-        # TODO: 读取带宽数据
-        current_lods, bitlimit_rest, should_reload = compute_next_lod(bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians)  # 决策量化级别, 预测视角内塞满带宽
+        current_bitlimit = bandwidth_iter.__next__() * 2**20 / args.fps  # 读取带宽数据
+        current_lods, bitlimit_rest, should_reload = compute_next_lod(current_bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians)  # 决策量化级别, 预测视角内塞满带宽
         update_visible_different_to_last(client_gaussians, last_gaussians, should_reload)
         # load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
         load_lod(client_gaussians, current_lods, client_gaussians_vqloader,
