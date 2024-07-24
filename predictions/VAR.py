@@ -8,7 +8,7 @@ from .base import Prediction
 
 
 class VARPrediction(Prediction):
-    def __init__(self, path, history_size=100):
+    def __init__(self, path, history_size=1000):
         super().__init__()
         pose_dataset = CameraPoseDataset(path, history_size=history_size, prediction_stride=1, prediction_length=1)
         pose_history, pose_groundtruth = pose_dataset[0]
