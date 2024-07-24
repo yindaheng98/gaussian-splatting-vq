@@ -30,7 +30,11 @@ class TransformerPrediction(Prediction):
         super().__init__()
         args = parser.parse_args(args=[
             "--is_training",
-            "1",
+            "0",
+            "--train_epochs",
+            "1000",
+            "--patience",
+            "10",
             "--root_path",
             "./dataset/camera/",
             "--data_path",
@@ -38,7 +42,9 @@ class TransformerPrediction(Prediction):
             "--model_id",
             "ECL_96_96",
             "--model",
-            "Autoformer",
+            "Informer",
+            "--freq",
+            "h",
             "--data",
             "camera",
             "--features",
@@ -97,7 +103,7 @@ class TransformerPrediction(Prediction):
         R = pose_history['R']
         T = pose_history['T']
         Q = matrix_to_quaternion(R)
-        data = torch.concat((T, Q), dim=-1)
+        data = torch.concat((T/10, Q), dim=-1)
         data = torch.concat((data, torch.zeros(size=(prediction_stride + prediction_length, data.shape[1]), dtype=data.dtype, device=data.device)), dim=0)
         ts = torch.concat((pose_history['timestamp'], pose_history['pred_timestamp']), dim=0)
         data_stamp = time_features(pd.to_datetime(ts.cpu().numpy() * self.fps, unit=self.freq), freq=self.freq)
@@ -113,7 +119,7 @@ class TransformerPrediction(Prediction):
         self.args.label_len = R.shape[0]
         pred = self._predict(batch_x, batch_y, batch_x_mark, batch_y_mark).squeeze(0).detach().cpu().numpy()
         Q = pred[prediction_stride:, 3:]
-        T = torch.tensor(pred[prediction_stride:, :3], device=R.device, dtype=R.dtype)
+        T = torch.tensor(pred[prediction_stride:, :3], device=R.device, dtype=R.dtype)*10
         R = quaternion_to_matrix(torch.tensor(Q, device=R.device, dtype=R.dtype))
         return {'R': R, 'T': T}
 
