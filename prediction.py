@@ -4,6 +4,7 @@ import torch
 import pandas
 import numpy as np
 from predictions.VAR import VARPrediction
+from predictions.LSTM import LSTMPrediction
 from typing import NamedTuple, List
 from scene.camera_dataset import CameraPoseDataset, Pose
 from gaussian_renderer import render, GaussianModel
@@ -13,6 +14,8 @@ from arguments import PipelineParams
 from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
 from warping import fromJSON, reconstrucion, projection, warp
+import torch.optim as optim
+from itertools import cycle
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -36,14 +39,16 @@ if __name__ == "__main__":
     frame_stride = 1/args.fps
     last_frame = None
     server_gaussians = GaussianModel(args.sh_degree)
-    model = VARPrediction(args.cameras)
+    model = LSTMPrediction(args.cameras)
+    optimizer = optim.SGD(model.lstm.parameters(), lr=0.1)
     for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
-        if n_frame > args.max_frame:
-            break
-        print(f"{timestamp:.4f}", "frame", n_frame, "loading")
+        model.lstm.zero_grad()
         pose_prediction = model.predict(pose_history, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
         mse_R = torch.sqrt(((pose_groundtruth['R'] - pose_prediction['R'])**2).mean())
         mse_T = torch.sqrt(((pose_groundtruth['T'] - pose_prediction['T'])**2).mean())
-        print(mse_R, mse_T)
+        loss = mse_R + mse_T/10
+        loss.backward()
+        print(f"{timestamp:.4f}", "frame", n_frame, "loading", 'R mse', mse_R.item(), 'T mse', mse_T.item())
+        optimizer.step()
