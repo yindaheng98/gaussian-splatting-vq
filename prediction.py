@@ -1,21 +1,10 @@
-import os
 import argparse
 import torch
-import pandas
-import numpy as np
 from predictions.VAR import VARPrediction
 from predictions.LSTM import LSTMPrediction
-from typing import NamedTuple, List
-from scene.camera_dataset import CameraPoseDataset, Pose
-from gaussian_renderer import render, GaussianModel
-from scene.gaussian_vq import VQGaussianModel, Attribute
-from scene.gaussian_kmeans import KMeansGaussianModel
+from scene.camera_dataset import CameraPoseDataset
 from arguments import PipelineParams
-from scene.cameras import Camera as View
-from utils.system_utils import searchForMaxIteration
-from warping import fromJSON, reconstrucion, projection, warp
 import torch.optim as optim
-from itertools import cycle
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -25,11 +14,8 @@ parser.add_argument("--width", type=float, default=1600, help="Camera width.")
 parser.add_argument("--height", type=float, default=1200, help="Camera height.")
 parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
 parser.add_argument("--history-size", type=int, default=15)
-parser.add_argument("--prediction-stride", type=int, default=5)
-parser.add_argument("--prediction-length", type=int, default=5)
-parser.add_argument("--video", type=str, required=True)
-parser.add_argument("--sh-degree", type=int, default=3)
-parser.add_argument("--max-frame", type=int, default=30)
+parser.add_argument("--prediction-stride", type=int, default=9)
+parser.add_argument("--prediction-length", type=int, default=3)
 
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
@@ -38,7 +24,6 @@ if __name__ == "__main__":
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
-    server_gaussians = GaussianModel(args.sh_degree)
     model = LSTMPrediction(args.cameras)
     teacher = VARPrediction(args.cameras)
     optimizer = optim.SGD(model.lstm.parameters(), lr=0.1)

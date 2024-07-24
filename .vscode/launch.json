@@ -375,11 +375,7 @@
             "justMyCode": false,
             "args": [
                 "--cameras",
-                "saved_data/test.txt",
-                "--video",
-                "output/coffee_martini",
-                "--sh-degree",
-                "2"
+                "saved_data/test.txt"
             ]
         },
         {

@@ -39,6 +39,7 @@ parser.add_argument("--bandwidth-start", type=int, default=0)
 parser.add_argument("--bandwidth-end", type=int, default=None)
 parser.add_argument("--prediction", type=str, default="VAR")
 parser.add_argument("--prediction-conf", type=str, required=True)
+parser.add_argument("--fov-save", type=str, default="fov.txt")
 
 
 class Camera(NamedTuple):
@@ -571,7 +572,7 @@ if __name__ == "__main__":
         print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
         print("speed", speed, "enlarge", w_enlarge.item(), h_enlarge.item(), "Missing", total_missing_pixels)
         print("predicted enlarge", w_enlarge_pred.item(), h_enlarge_pred.item(), "Missing", total_missing_pixels_enlarged)
-        with open("fov.txt", "a", encoding="utf8") as f:
+        with open(args.fov_save, "a", encoding="utf8") as f:
             f.write(f"{w_enlarge}, {h_enlarge}, " + ', '.join([str(i) for i in speed.cpu().numpy().tolist()]) + '\n')
 
     if videoout is not None:
