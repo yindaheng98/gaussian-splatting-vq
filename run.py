@@ -21,21 +21,22 @@ from itertools import cycle
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
-parser.add_argument("--start", type=int, default=0)
+parser.add_argument("--cameras-start", type=int, default=0)
 parser.add_argument("--fovx", type=float, default=1.4773902348773813, help="Camera fov x axis.")
 parser.add_argument("--fovy", type=float, default=1.2005465997792715, help="Camera fov y axis.")
 parser.add_argument("--width", type=float, default=1600, help="Camera width.")
 parser.add_argument("--height", type=float, default=1200, help="Camera height.")
-parser.add_argument("--buffersize", type=int, default=10, help="Camera buffer size.")
 parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
-parser.add_argument("--history-size", type=int, default=15)
+parser.add_argument("--history-size", type=int, default=15)  # 用前15帧做预测
 parser.add_argument("--prediction-stride", type=int, default=9)  # 本地缓存3帧
-parser.add_argument("--prediction-length", type=int, default=3)  # 每帧给3帧用
+parser.add_argument("--prediction-length", type=int, default=3)  # 每个reference image给3帧用
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
 parser.add_argument("--max-frame", type=int, default=30)
 parser.add_argument("--codebooks", type=str, required=True)
 parser.add_argument("--bandwidth", type=str, default="saved_data/bandwidth.csv")
+parser.add_argument("--bandwidth-start", type=int, default=0)
+parser.add_argument("--bandwidth-end", type=int, default=None)
 
 
 class Camera(NamedTuple):
@@ -459,7 +460,7 @@ if __name__ == "__main__":
     torch.device("cuda").__enter__()
     pipeline = PipelineParams(parser)
     args = parser.parse_args()
-    bandwidth = pd.read_csv(args.bandwidth)["throughput_mbps"]
+    bandwidth = pd.read_csv(args.bandwidth)["throughput_mbps"][args.bandwidth_start:(args.bandwidth_end or args.bandwidth_start+args.max_frame)]
     bandwidth_iter = cycle(bandwidth)
     # prediction = TransformerPrediction(args.cameras)
     prediction = VARPrediction(args.cameras)
@@ -472,8 +473,8 @@ if __name__ == "__main__":
     client_gaussians_vqloader = KMeansGaussianModel(args.sh_degree)
     last_gaussians = KMeansGaussianModel(args.sh_degree)
     current_lods = None
-    for i in range(len(pose_dataset) - args.start):
-        (pose_history, pose_groundtruth) = pose_dataset[i+args.start]
+    for i in range(len(pose_dataset) - args.cameras_start):
+        (pose_history, pose_groundtruth) = pose_dataset[i+args.cameras_start]
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
         if n_frame > args.max_frame:
