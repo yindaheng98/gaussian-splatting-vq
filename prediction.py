@@ -40,8 +40,10 @@ if __name__ == "__main__":
     last_frame = None
     server_gaussians = GaussianModel(args.sh_degree)
     model = LSTMPrediction(args.cameras)
+    teacher = VARPrediction(args.cameras)
     optimizer = optim.SGD(model.lstm.parameters(), lr=0.1)
-    for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
+    for i in range(len(pose_dataset)):
+        pose_history, pose_groundtruth = pose_dataset[i]
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
         model.lstm.zero_grad()
@@ -50,5 +52,8 @@ if __name__ == "__main__":
         mse_T = torch.sqrt(((pose_groundtruth['T'] - pose_prediction['T'])**2).mean())
         loss = mse_R + mse_T/10
         loss.backward()
-        print(f"{timestamp:.4f}", "frame", n_frame, "loading", 'R mse', mse_R.item(), 'T mse', mse_T.item())
+        teacher_pose_prediction = teacher.predict(pose_history, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
+        tmse_R = torch.sqrt(((pose_groundtruth['R'] - teacher_pose_prediction['R'])**2).mean())
+        tmse_T = torch.sqrt(((pose_groundtruth['T'] - teacher_pose_prediction['T'])**2).mean())
+        print(f"{timestamp:.4f}", "frame", n_frame, "loading", 'R mse', mse_R.item(), 'T mse', mse_T.item(), 'teacher R mse', tmse_R.item(), 'T mse', tmse_T.item())
         optimizer.step()
