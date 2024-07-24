@@ -16,3 +16,12 @@ class LinearPredictionFoV(PredictionFoV):
 
     def predict(self, speed):
         return self.model.predict(quaternion_to_axis_angle(speed.unsqueeze(0)).cpu().numpy())[0, ...]
+
+
+if __name__ == "__main__":
+    data = np.genfromtxt("fov.txt", delimiter=",")
+    y, X = data[..., :2], quaternion_to_axis_angle(torch.tensor(data[..., 2:])).cpu().numpy()
+    model = LinearRegression()
+    model.fit(X, y)
+    y_ = model.predict(X)
+    print(y_ - y)
