@@ -14,6 +14,7 @@ from warping import MorphologyClose, error_erosion, fromJSON, is_occlusion, reco
 from predictions.base import Prediction
 from predictions.VAR import VARPrediction
 from predictions.Transformer import TransformerPrediction
+from predictions.Linear import LinearPredictionFoV
 from utils.camera_utils import matrix_to_quaternion
 import pandas as pd
 from itertools import cycle
@@ -462,6 +463,7 @@ if __name__ == "__main__":
     bandwidth_iter = cycle(bandwidth)
     # prediction = TransformerPrediction(args.cameras)
     prediction = VARPrediction(args.cameras)
+    prediction_fov = LinearPredictionFoV()
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
@@ -476,13 +478,16 @@ if __name__ == "__main__":
         timestamp = pose_history["timestamp"][0].item()
         if n_frame > args.max_frame:
             break
+        frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
+        n_iter = searchForMaxIteration(frame_folder)
+        frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
         print(f"{timestamp:.4f}", "frame", n_frame, "loading")
+
         pose_prediction = predict_camera(
             prediction, pose_history,
             prediction_stride=args.prediction_stride, prediction_length=args.prediction_length,
             fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
-        print(torch.abs(pose_prediction["R"] - pose_groundtruth["R"]).mean())
-        print(torch.abs(pose_prediction["T"] - pose_groundtruth["T"]).mean())
+        print("loss", torch.abs(pose_prediction["R"] - pose_groundtruth["R"]).mean(), torch.abs(pose_prediction["T"] - pose_groundtruth["T"]).mean())
         prediction_camera = Camera(
             pose=Pose(
                 timestamp=pose_history["timestamp"][-1],
@@ -490,13 +495,19 @@ if __name__ == "__main__":
                 T=pose_prediction["T"][-1, ...]),
             fovx=args.fovx, fovy=args.fovy, width=args.width//4, height=args.height//4)
         speed = rotate_speed(pose_prediction["R"])
-        frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
-        n_iter = searchForMaxIteration(frame_folder)
-        frame_ply = os.path.join(frame_folder, f"iteration_{n_iter}", "point_cloud.ply")
+        w_enlarge_pred, h_enlarge_pred = prediction_fov.predict(speed)
+        prediction_camera_enlarged = Camera(
+            pose=Pose(
+                timestamp=pose_history["timestamp"][-1],
+                R=pose_prediction["R"][-1, ...],
+                T=pose_prediction["T"][-1, ...]),
+            fovx=math.atan(w_enlarge_pred*math.tan(args.fovx/2))*2, fovy=math.atan(h_enlarge_pred*math.tan(args.fovy/2))*2,
+            width=args.width//4, height=args.height//4)
 
         # 服务端渲染
         server_gaussians.load_ply(path=frame_ply)
         reference_image, _ = render_frame(prediction_camera, server_gaussians, pipeline)
+        reference_image_enlarged, _ = render_frame(prediction_camera_enlarged, server_gaussians, pipeline)
 
         # 发送计算初始化
         if n_frame == 1:
@@ -515,6 +526,7 @@ if __name__ == "__main__":
                  config=LoDLoadConfig(reload_path=frame_ply, n_lod=n_lod, codebook_dirpath=args.codebooks))  # 按照量化级别执行反量化
         total_missing_pixels = 0
         w_enlarge, h_enlarge = 0, 0
+        total_missing_pixels_enlarged = 0
         for j in range(args.prediction_length):
             n_render = j + 1
             print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
@@ -527,11 +539,14 @@ if __name__ == "__main__":
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
             warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+            warpedenlargedref_image, is_edge_enlarged = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera_enlarged, reference_image)
             is_edge, w_enlarge_, h_enlarge_ = compute_enlarge(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             w_enlarge = max(w_enlarge, w_enlarge_)
             h_enlarge = max(h_enlarge, h_enlarge_)
             print("Missing pixels", is_edge.sum().item())
             total_missing_pixels += is_edge.sum().item()
+            print("Missing pixels after enlarged", is_edge_enlarged.sum().item())
+            total_missing_pixels_enlarged += is_edge_enlarged.sum().item()
 
             enlarge_camera = Camera(
                 pose=Pose(
@@ -552,7 +567,8 @@ if __name__ == "__main__":
             # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
         print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
-        print("speed", speed, "enlarge", w_enlarge, h_enlarge, "Missing", total_missing_pixels)
+        print("speed", speed, "enlarge", w_enlarge.item(), h_enlarge.item(), "Missing", total_missing_pixels)
+        print("predicted enlarge", w_enlarge_pred.item(), h_enlarge_pred.item(), "Missing", total_missing_pixels_enlarged)
         with open("fov.txt", "a", encoding="utf8") as f:
             f.write(f"{w_enlarge}, {h_enlarge}, " + ', '.join([str(i) for i in speed.cpu().numpy().tolist()]) + '\n')
 
