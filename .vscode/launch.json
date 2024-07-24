@@ -367,10 +367,10 @@
             ]
         },
         {
-            "name": "prediction",
+            "name": "prediction train",
             "type": "debugpy",
             "request": "launch",
-            "program": "prediction.py",
+            "program": "prediction_train.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
