@@ -381,6 +381,20 @@
             ]
         },
         {
+            "name": "prediction test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "prediction_test.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--cameras",
+                "saved_data/test.txt",
+                "--save",
+                "output/run/prediction.pth"
+            ]
+        },
+        {
             "name": "ply23dgs",
             "type": "debugpy",
             "request": "launch",
