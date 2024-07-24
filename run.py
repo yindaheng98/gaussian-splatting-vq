@@ -20,6 +20,7 @@ from itertools import cycle
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
+parser.add_argument("--start", type=int, default=0)
 parser.add_argument("--fovx", type=float, default=1.4773902348773813, help="Camera fov x axis.")
 parser.add_argument("--fovy", type=float, default=1.2005465997792715, help="Camera fov y axis.")
 parser.add_argument("--width", type=float, default=1600, help="Camera width.")
@@ -469,7 +470,8 @@ if __name__ == "__main__":
     client_gaussians_vqloader = KMeansGaussianModel(args.sh_degree)
     last_gaussians = KMeansGaussianModel(args.sh_degree)
     current_lods = None
-    for i, (pose_history, pose_groundtruth) in enumerate(pose_dataset):
+    for i in range(len(pose_dataset) - args.start):
+        (pose_history, pose_groundtruth) = pose_dataset[i+args.start]
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
         if n_frame > args.max_frame:
@@ -536,7 +538,7 @@ if __name__ == "__main__":
                     timestamp=pose_history["timestamp"][-1],
                     R=pose_prediction["R"][-1, ...],
                     T=pose_prediction["T"][-1, ...]),
-                fovx=math.atan(w_enlarge_*math.tan(args.fovx)), fovy=math.atan(h_enlarge_*math.tan(args.fovy)),
+                fovx=math.atan(w_enlarge_*math.tan(args.fovx/2))*2, fovy=math.atan(h_enlarge_*math.tan(args.fovy/2))*2,
                 width=args.width//4, height=args.height//4)
             enlargeref_image, _ = render_frame(enlarge_camera, server_gaussians, pipeline)
             warpedenlargref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
@@ -551,6 +553,8 @@ if __name__ == "__main__":
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
         print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
         print("speed", speed, "enlarge", w_enlarge, h_enlarge, "Missing", total_missing_pixels)
+        with open("fov.txt", "a", encoding="utf8") as f:
+            f.write(f"{w_enlarge}, {h_enlarge}, " + ', '.join([str(i) for i in speed.cpu().numpy().tolist()]) + '\n')
 
     if videoout is not None:
         videoout.release()
