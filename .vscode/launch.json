@@ -355,7 +355,15 @@
                 "--sh-degree",
                 "2",
                 "--codebooks",
-                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000"
+                "output/vq-coffee_martini/frame1/point_cloud/iteration_30000",
+                "--cameras-start",
+                "26",
+                "--bandwidth-start",
+                "3457",
+                "--bandwidth-end",
+                "3500",
+                "--prediction-conf",
+                "{\"path\":\"saved_data/test.txt\"}"
             ]
         },
         {

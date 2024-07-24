@@ -1,8 +1,6 @@
 import torch
-import statsmodels.api as sm
 from statsmodels.tsa.api import VAR
-from statsmodels.tsa.vector_ar.var_model import VARResults
-from scene.camera_dataset import CameraPoseDataset, Pose
+from scene.camera_dataset import CameraPoseDataset
 from utils.camera_utils import matrix_to_quaternion, quaternion_to_matrix
 from .base import Prediction
 

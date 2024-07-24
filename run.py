@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import argparse
@@ -12,8 +13,7 @@ from scene.cameras import Camera as View
 from utils.system_utils import searchForMaxIteration
 from warping import MorphologyClose, error_erosion, fromJSON, is_occlusion, reconstrucion, projection
 from predictions.base import Prediction
-from predictions.VAR import VARPrediction
-from predictions.Transformer import TransformerPrediction
+from predictions import prediction_dict
 from predictions.Linear import LinearPredictionFoV
 from utils.camera_utils import matrix_to_quaternion
 import pandas as pd
@@ -37,6 +37,8 @@ parser.add_argument("--codebooks", type=str, required=True)
 parser.add_argument("--bandwidth", type=str, default="saved_data/bandwidth.csv")
 parser.add_argument("--bandwidth-start", type=int, default=0)
 parser.add_argument("--bandwidth-end", type=int, default=None)
+parser.add_argument("--prediction", type=str, default="VAR")
+parser.add_argument("--prediction-conf", type=str, required=True)
 
 
 class Camera(NamedTuple):
@@ -462,8 +464,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     bandwidth = pd.read_csv(args.bandwidth)["throughput_mbps"][args.bandwidth_start:(args.bandwidth_end or args.bandwidth_start+args.max_frame)]
     bandwidth_iter = cycle(bandwidth)
-    # prediction = TransformerPrediction(args.cameras)
-    prediction = VARPrediction(args.cameras)
+    prediction = prediction_dict[args.prediction](**json.loads(args.prediction_conf))
     prediction_fov = LinearPredictionFoV()
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
