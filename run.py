@@ -32,7 +32,7 @@ parser.add_argument("--prediction-stride", type=int, default=9)  # 本地缓存3
 parser.add_argument("--prediction-length", type=int, default=3)  # 每个reference image给3帧用
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
-parser.add_argument("--max-frame", type=int, default=30)
+parser.add_argument("--max-frame", type=int, default=10)
 parser.add_argument("--codebooks", type=str, required=True)
 parser.add_argument("--bandwidth", type=str, default="saved_data/bandwidth.csv")
 parser.add_argument("--bandwidth-start", type=int, default=0)
@@ -40,6 +40,7 @@ parser.add_argument("--bandwidth-end", type=int, default=None)
 parser.add_argument("--prediction", type=str, default="VAR")
 parser.add_argument("--prediction-conf", type=str, required=True)
 parser.add_argument("--fov-save", type=str, default="fov.txt")
+parser.add_argument("--trace-save", type=str, default="trace.txt")
 
 
 class Camera(NamedTuple):
@@ -275,7 +276,7 @@ def load_visible_from_last(gaussians: VQGaussianModel, last_gaussians: VQGaussia
     load_attr_visible(Attribute.opacity)
 
 
-def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.Tensor, current_lods: torch.Tensor, lod_bitsize: List[int], gaussians: GaussianModel):
+def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.Tensor, current_lods: torch.Tensor, lod_bitsize: List[int], gaussians: GaussianModel, trace={}):
     # TODO: 计算接下来每个参数都需要多少LoD, 让新增的接近平均LoD
     # 计算: 要重载的gaussians重载到多高lod?
     avg_lod = current_lods[visible].float().mean()  # 所有可见gaussian的平均lod
@@ -284,10 +285,14 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.
     while compute_reload_size(should_reload.sum(), reload_lod, lod_bitsize) < bitlimit and reload_lod <= avg_lod:
         reload_lod += 1  # 加重载lod加到满或者超过了平均lod
     print("should reload", should_reload.sum().item(), "avglod", avg_lod.item(), "reload lod", reload_lod)
+    trace["should reload"] = should_reload.sum().item()
+    trace["avglod"] = avg_lod.item()
+    trace["reload lod"] = reload_lod
     reload_need_bit = compute_reload_size(should_reload.sum(), reload_lod, lod_bitsize)  # 完全重载需要多少bit
     if reload_need_bit > bitlimit:  # 重载都不够
         can_reload_n = int(bitlimit / lod_bitsize[0])  # 能重载多少个
         print("cannot full reload", reload_need_bit.item(), ">", bitlimit, "can only reload", can_reload_n, "x", lod_bitsize[0])
+        trace["only reload"] = can_reload_n
         should_reload_tmp = should_reload[should_reload]
         score = torch.log(gaussians.get_opacity.detach().squeeze(-1))+torch.sum(gaussians._scaling.detach(), dim=1)
         score = score[should_reload]
@@ -299,6 +304,7 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.
     current_lods[should_reload] = reload_lod  # 重载之
     bitlimit_rest = bitlimit - reload_need_bit  # 重载完lod0还剩多大带宽
     print("rest bandwidth", bitlimit_rest.item())
+    trace["rest bandwidth"] = bitlimit_rest.item()
     # 计算: 要提升lod的gaussians提升到多高lod?
     next_lod = current_lods[visible]+1  # 可见gaussian的下一个lod是?
     can_lift = next_lod < len(lod_bitsize)  # 哪些还能提升(lod最大只有len(lod_bitsize))
@@ -475,10 +481,12 @@ if __name__ == "__main__":
     client_gaussians_vqloader = KMeansGaussianModel(args.sh_degree)
     last_gaussians = KMeansGaussianModel(args.sh_degree)
     current_lods = None
+    traces = []
     for i in range(len(pose_dataset) - args.cameras_start):
         (pose_history, pose_groundtruth) = pose_dataset[i+args.cameras_start]
         n_frame = i + 1
         timestamp = pose_history["timestamp"][0].item()
+        trace = {"timestamp": timestamp}
         if n_frame > args.max_frame:
             break
         frame_folder = os.path.join(args.video, f"frame{n_frame}", "point_cloud")
@@ -491,6 +499,10 @@ if __name__ == "__main__":
             prediction_stride=args.prediction_stride, prediction_length=args.prediction_length,
             fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
         print("loss", torch.abs(pose_prediction["R"] - pose_groundtruth["R"]).mean(), torch.abs(pose_prediction["T"] - pose_groundtruth["T"]).mean())
+        trace["prediction loss"] = {
+            "R": torch.abs(pose_prediction["R"] - pose_groundtruth["R"]).mean().item(),
+            "T": torch.abs(pose_prediction["T"] - pose_groundtruth["T"]).mean().item(),
+        }
         prediction_camera = Camera(
             pose=Pose(
                 timestamp=pose_history["timestamp"][-1],
@@ -506,6 +518,12 @@ if __name__ == "__main__":
                 T=pose_prediction["T"][-1, ...]),
             fovx=math.atan(w_enlarge_pred*math.tan(args.fovx/2))*2, fovy=math.atan(h_enlarge_pred*math.tan(args.fovy/2))*2,
             width=args.width//4, height=args.height//4)
+        trace["enlarge prediction"] = dict(
+            fovx=math.atan(w_enlarge_pred*math.tan(args.fovx/2))*2,
+            fovy=math.atan(h_enlarge_pred*math.tan(args.fovy/2))*2,
+            w=w_enlarge_pred,
+            h=w_enlarge_pred
+        )
 
         # 服务端渲染
         server_gaussians.load_ply(path=frame_ply)
@@ -522,7 +540,8 @@ if __name__ == "__main__":
         visible = mark_visible(prediction_camera, client_gaussians, pipeline)
         should_reload = mark_visible_different(client_gaussians, last_gaussians, visible)
         current_bitlimit = bandwidth_iter.__next__() * 2**20 / args.fps  # 读取带宽数据
-        current_lods, bitlimit_rest, should_reload = compute_next_lod(current_bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians)  # 决策量化级别, 预测视角内塞满带宽
+        trace["bitlimit"] = current_bitlimit
+        current_lods, bitlimit_rest, should_reload = compute_next_lod(current_bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians, trace)  # 决策量化级别, 预测视角内塞满带宽
         update_visible_different_to_last(client_gaussians, last_gaussians, should_reload)
         # load_visible_from_last(client_gaussians, last_gaussians, visible)  # debug
         load_lod(client_gaussians, current_lods, client_gaussians_vqloader,
@@ -530,9 +549,12 @@ if __name__ == "__main__":
         total_missing_pixels = 0
         w_enlarge, h_enlarge = 0, 0
         total_missing_pixels_enlarged = 0
+        trace["rendering"] = []
         for j in range(args.prediction_length):
+            render_trace = {}
             n_render = j + 1
             print(f"{pose_groundtruth['timestamp'][j].item():.4f}", "frame", n_frame, "rendering", n_render)
+            render_trace["timestamp"] = pose_groundtruth['timestamp'][j].item()
 
             groundtruth_camera = Camera(
                 pose=Pose(
@@ -547,9 +569,11 @@ if __name__ == "__main__":
             w_enlarge = max(w_enlarge, w_enlarge_)
             h_enlarge = max(h_enlarge, h_enlarge_)
             print("Missing pixels", is_edge.sum().item())
+            render_trace["missing pixels"] = is_edge.sum().item()
             total_missing_pixels += is_edge.sum().item()
-            print("Missing pixels after enlarged", is_edge_enlarged.sum().item())
+            print("Missing pixels after predicted enlarge", is_edge_enlarged.sum().item())
             total_missing_pixels_enlarged += is_edge_enlarged.sum().item()
+            render_trace["missing pixels after enlarge"] = is_edge_enlarged.sum().item()
 
             enlarge_camera = Camera(
                 pose=Pose(
@@ -558,22 +582,37 @@ if __name__ == "__main__":
                     T=pose_prediction["T"][-1, ...]),
                 fovx=math.atan(w_enlarge_*math.tan(args.fovx/2))*2, fovy=math.atan(h_enlarge_*math.tan(args.fovy/2))*2,
                 width=args.width//4, height=args.height//4)
+            render_trace["enlarge groundtruth"] = dict(
+                fovx=math.atan(w_enlarge_*math.tan(args.fovx/2))*2,
+                fovy=math.atan(h_enlarge_*math.tan(args.fovy/2))*2,
+                w=w_enlarge_,
+                h=h_enlarge_
+            )
             enlargeref_image, _ = render_frame(enlarge_camera, server_gaussians, pipeline)
             warpedenlargref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
-            print("Missing pixels after enlarge", is_edge.sum().item())
+            print("Missing pixels after groundtruth enlarge", is_edge.sum().item())
 
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
             save2images(distorted_image, warpedref_image, warpedenlargref_image, n_frame, n_render)  # debug
+            trace["rendering"].append(render_trace)
             # TODO: 色彩恢复
             # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
         print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
+        trace["enlarge groundtruth"] = dict(
+            fovx=math.atan(w_enlarge*math.tan(args.fovx/2))*2,
+            fovy=math.atan(h_enlarge*math.tan(args.fovy/2))*2
+        )
         print("speed", speed, "enlarge", w_enlarge.item(), h_enlarge.item(), "Missing", total_missing_pixels)
+        trace["missing pixels"] = total_missing_pixels
         print("predicted enlarge", w_enlarge_pred.item(), h_enlarge_pred.item(), "Missing", total_missing_pixels_enlarged)
+        trace["missing pixels after enlarge"] = total_missing_pixels_enlarged
         with open(args.fov_save, "a", encoding="utf8") as f:
             f.write(f"{w_enlarge}, {h_enlarge}, " + ', '.join([str(i) for i in speed.cpu().numpy().tolist()]) + '\n')
-
+        traces.append(trace)
+    with open(args.trace_save, "w", encoding='utf8') as f:
+        json.dump(traces, f, indent=2)
     if videoout is not None:
         videoout.release()
