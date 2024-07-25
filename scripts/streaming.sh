@@ -1,6 +1,7 @@
 #!/bin/bash
 train_prediction() {
     mkdir -p output/run-$1/camera$2
+    # echo \
     python prediction_train.py \
         --cameras saved_data/$1-camera$2.txt \
         --save output/run-$1/camera$2/prediction.pth
@@ -8,6 +9,7 @@ train_prediction() {
 # train_prediction coffee_martini 0
 test_prediction() {
     mkdir -p output/run-$1/camera$2
+    # echo \
     python prediction_test.py \
         --cameras saved_data/$1-camera$2.txt \
         --save output/run-$1/camera$2/prediction.pth
@@ -15,6 +17,7 @@ test_prediction() {
 # test_prediction coffee_martini 0
 run() {
     mkdir -p output/run-$1/camera$2/start$3
+    # echo \
     python run.py \
         --video output/$1 \
         --sh-degree 2 \
@@ -29,7 +32,8 @@ run() {
         --trace-save output/run-$1/camera$2/start$3/trace-$4-$6.json \
         --image-save output/run-$1/camera$2/start$3/image-$4-$6 \
         --max-frame $5 \
-        $7
+        $7 &&
+        rm -rf output/run-$1/camera$2/start$3/image-$4-$6
 }
 # run coffee_martini 0 10 VAR 3 gen_fov
 run_var() {
