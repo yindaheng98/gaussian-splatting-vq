@@ -35,13 +35,17 @@ run() {
 run_var() {
     rm output/run-$1/camera$2/start$3/fov-VAR.txt
     run $1 $2 $3 VAR $4 gen_fov
-    run $1 $2 $3 VAR $4 run_fov "--use-enlarged-in-mark-visible"
+    if [ -e "output/run-$1/camera$2/start$3/fov-VAR.txt" ]; then
+        run $1 $2 $3 VAR $4 run_fov "--use-enlarged-in-mark-visible"
+    fi
 }
 # run_var coffee_martini 0 10 3
 run_lstm() {
     rm output/run-$1/camera$2/start$3/fov-LSTM.txt
     run $1 $2 $3 LSTM $4 gen_fov "--prediction-load output/run-$1/camera$2/prediction.pth"
-    run $1 $2 $3 LSTM $4 run_fov "--use-enlarged-in-mark-visible"
+    if [ -e "output/run-$1/camera$2/start$3/fov-LSTM.txt" ]; then
+        run $1 $2 $3 LSTM $4 run_fov "--use-enlarged-in-mark-visible"
+    fi
 }
 # run_lstm coffee_martini 0 10 3
 run_both() {
