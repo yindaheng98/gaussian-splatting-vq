@@ -579,7 +579,7 @@ if __name__ == "__main__":
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
             warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
-            warpedenlargedref_image, is_edge_enlarged = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera_enlarged, reference_image)
+            warpedenlargedref_image, is_edge_enlarged = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera_enlarged, reference_image_enlarged)
             is_edge, w_enlarge_, h_enlarge_ = compute_enlarge(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             w_enlarge = max(w_enlarge, w_enlarge_)
             h_enlarge = max(h_enlarge, h_enlarge_)
