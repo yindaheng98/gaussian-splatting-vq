@@ -33,7 +33,7 @@ class Restoration:
     def restore(self, distorted, reference):
         with torch.no_grad():
             out = self.net((reference.unsqueeze(0), distorted.unsqueeze(0)))
-            return out
+            return out.squeeze(0)
 
 
 def get_restoration(path, args):
@@ -52,10 +52,8 @@ def tensor2uint(img):
 
 
 def metrics(out, hr_img):
-    out *= 255.
-    out = tensor2uint(out)
-    hr_img *= 255.
-    hr_img = tensor2uint(hr_img)
+    out = tensor2uint(out*255.)
+    hr_img = tensor2uint(hr_img*255.)
     return dict(
         psnr_rgb=calculate_psnr(out, hr_img, crop_border=0),
         ssim_rgb=calculate_ssim(out, hr_img, crop_border=0),

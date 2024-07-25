@@ -197,23 +197,15 @@ def save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_
     cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{n_render}.png"), frame_uint8)
 
 
-def save4training(distorted_image, warpedref_image, enlargref_image, groundtruth_image, n_frame, n_render, folder="output/run"):
-    distorted_folder = os.path.join(folder, "distorted")
-    warpedref_folder = os.path.join(folder, "warped")
-    enlargref_folder = os.path.join(folder, "warpedenlarged")
-    groundtruth_folder = os.path.join(folder, "groundtruth")
-    os.makedirs(distorted_folder, exist_ok=True)
-    os.makedirs(warpedref_folder, exist_ok=True)
-    os.makedirs(enlargref_folder, exist_ok=True)
-    os.makedirs(groundtruth_folder, exist_ok=True)
+def save4training(n_frame, n_render, folder="output/run", **kwargs):
     name = f"frame{n_frame}_{n_render}.png"
     import cv2
-    frame = torch.stack((distorted_image, warpedref_image, enlargref_image, groundtruth_image), dim=-1).permute(1, 2, 0, 3)
-    frame_uint8 = (frame[..., [2, 1, 0], :].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
-    cv2.imwrite(os.path.join(distorted_folder, name), frame_uint8[..., 0])
-    cv2.imwrite(os.path.join(warpedref_folder, name), frame_uint8[..., 1])
-    cv2.imwrite(os.path.join(enlargref_folder, name), frame_uint8[..., 2])
-    cv2.imwrite(os.path.join(groundtruth_folder, name), frame_uint8[..., 3])
+    for k, img in kwargs.items():
+        folder_ = os.path.join(folder, k)
+        os.makedirs(folder_, exist_ok=True)
+        frame = img.permute(1, 2, 0)
+        frame_uint8 = (frame[..., [2, 1, 0]].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
+        cv2.imwrite(os.path.join(folder_, name), frame_uint8)
 
 
 def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
@@ -619,11 +611,19 @@ if __name__ == "__main__":
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
             # save2images(distorted_image, warpedref_image, warpedenlargtref_image, n_frame, n_render)  # debug
-            save4training(distorted_image, warpedref_image, warpedenlargedref_image, groundtruth_image, n_frame, n_render, folder=args.image_save)
             restored_image = restoration.restore(distorted_image, warpedref_image)  # 色彩恢复, 用训好的merge模型直接出
             enlargerestored_image = restoration.restore(distorted_image, warpedenlargedref_image)  # 色彩恢复, 用训好的merge模型直接出
             render_trace["restored_quality"] = metrics(restored_image, groundtruth_image)  # 测质量
             render_trace["enlargerestored_quality"] = metrics(enlargerestored_image, groundtruth_image)  # 测质量
+            save4training(
+                n_frame, n_render, folder=args.image_save,
+                distorted=distorted_image,
+                warped=warpedref_image,
+                warpedenlarged=warpedenlargedref_image,
+                groundtruth=groundtruth_image,
+                restored=restored_image,
+                enlargerestored=enlargerestored_image,
+            )
             trace["rendering"].append(render_trace)
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
         print("fovy", args.fovy, "->", math.atan(h_enlarge*math.tan(args.fovy)))
