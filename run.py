@@ -323,37 +323,41 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.
     print("rest bandwidth", bitlimit_rest.item())
     trace["rest bandwidth"] = bitlimit_rest.item()
     # 计算: 要提升lod的gaussians提升到多高lod?
-    next_lod = current_lods[visible]+1  # 可见gaussian的下一个lod是?
-    can_lift = next_lod < len(lod_bitsize)  # 哪些还能提升(lod最大只有len(lod_bitsize))
-    next_lod_can_lift = next_lod[can_lift]  # 取出还能提升的
-    next_lod_can_lift_sorted_idx = next_lod_can_lift.argsort()  # 按LoD排序, 从低lod开始提升
-    bit_for_lift = torch.tensor(lod_bitsize)[next_lod_can_lift]  # 提升到下一个lod需要多少bit
+    while True:
+        next_lod = current_lods[visible]+1  # 可见gaussian的下一个lod是?
+        can_lift = next_lod < len(lod_bitsize)  # 哪些还能提升(lod最大只有len(lod_bitsize))
+        if can_lift.sum() <= 0:  # 没有能提升的了?
+            return current_lods, bitlimit_rest, should_reload  # 直接返回
+        next_lod_can_lift = next_lod[can_lift]  # 取出还能提升的
+        next_lod_can_lift_sorted_idx = next_lod_can_lift.argsort()  # 按LoD排序, 从低lod开始提升
+        bit_for_lift = torch.tensor(lod_bitsize)[next_lod_can_lift]  # 提升到下一个lod需要多少bit
 
-    def accu_to_limit(bits, bitlimit: int, i=0, j=None):
-        j = j or bits.shape[0]
-        if bits[:i].sum() > bitlimit:
-            return i
-        if bits[:j].sum() < bitlimit:
-            return j
-        if i == j or i == j-1:
-            return i
-        k = (i+j)//2
-        if bits[:k].sum() > bitlimit:
-            return accu_to_limit(bits, bitlimit, i, k)
-        else:
-            return accu_to_limit(bits, bitlimit, k, j)
-    k = accu_to_limit(bit_for_lift[next_lod_can_lift_sorted_idx], bitlimit_rest)  # 找出最多可以提到第几个gaussian
-    next_lod_to_lift_sorted_idx = next_lod_can_lift_sorted_idx[:k]  # 待提升的gaussian的index的列表
-    bitlimit_rest -= bit_for_lift[next_lod_to_lift_sorted_idx].sum()  # 提升后的剩余带宽
-    print("lift", k, "rest bandwidth", bitlimit_rest.item())
+        def accu_to_limit(bits, bitlimit: int, i=0, j=None):
+            j = j or bits.shape[0]
+            if bits[:i].sum() > bitlimit:
+                return i
+            if bits[:j].sum() < bitlimit:
+                return j
+            if i == j or i == j-1:
+                return i
+            k = (i+j)//2
+            if bits[:k].sum() > bitlimit:
+                return accu_to_limit(bits, bitlimit, i, k)
+            else:
+                return accu_to_limit(bits, bitlimit, k, j)
+        k = accu_to_limit(bit_for_lift[next_lod_can_lift_sorted_idx], bitlimit_rest)  # 找出最多可以提到第几个gaussian
+        if k <= 0:
+            return current_lods, bitlimit_rest, should_reload
+        next_lod_to_lift_sorted_idx = next_lod_can_lift_sorted_idx[:k]  # 待提升的gaussian的index的列表
+        bitlimit_rest -= bit_for_lift[next_lod_to_lift_sorted_idx].sum()  # 提升后的剩余带宽
+        print("lift", k, "rest bandwidth", bitlimit_rest.item())
+        # 操作: 按照上述计算结果填充current_lods
+        tmp_visible = current_lods[visible]
+        tmp_can_lift = tmp_visible[can_lift]
+        tmp_can_lift[next_lod_to_lift_sorted_idx] += 1
+        tmp_visible[can_lift] = tmp_can_lift
+        current_lods[visible] = tmp_visible
     # TODO: 有空余带宽时预取其他区域
-    # 操作: 按照上述计算结果填充current_lods
-    tmp_visible = current_lods[visible]
-    tmp_can_lift = tmp_visible[can_lift]
-    tmp_can_lift[next_lod_to_lift_sorted_idx] += 1
-    tmp_visible[can_lift] = tmp_can_lift
-    current_lods[visible] = tmp_visible
-    return current_lods, bitlimit_rest, should_reload
 
 
 def init_gaussians(gaussians: VQGaussianModel, init_path=None):
