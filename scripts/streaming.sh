@@ -58,10 +58,11 @@ run_all() {
     train_prediction $1 $2
     test_prediction $1 $2
     for i in {0..10}; do
-        run_both $1 $2 $(($i * 100)) 100 &
-        if [ $(($i % 3)) == 2 ]; then
-            wait
-        fi
+        run_both $1 $2 $(($i * 100)) 100
+        # run_both $1 $2 $(($i * 100)) 100 &
+        # if [ $(($i % 3)) == 2 ]; then
+        #     wait
+        # fi
     done
 }
 run_all coffee_martini 0
