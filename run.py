@@ -31,6 +31,7 @@ parser.add_argument("--fps", type=int, default=30, help="Playback fps.")
 parser.add_argument("--history-size", type=int, default=15)  # 用前15帧做预测
 parser.add_argument("--prediction-stride", type=int, default=9)  # 本地缓存3帧
 parser.add_argument("--prediction-length", type=int, default=3)  # 每个reference image给3帧用
+parser.add_argument("--use-enlarged-in-mark-visible", action="store_true")
 parser.add_argument("--video", type=str, required=True)
 parser.add_argument("--sh-degree", type=int, default=3)
 parser.add_argument("--max-frame", type=int, default=10)
@@ -557,6 +558,8 @@ if __name__ == "__main__":
         # 发送计算
         client_gaussians.load_ply(path=frame_ply)
         visible = mark_visible(prediction_camera, client_gaussians, pipeline)
+        if args.use_enlarged_in_mark_visible:
+            visible = mark_visible(prediction_camera_enlarged, client_gaussians, pipeline)
         should_reload = mark_visible_different(client_gaussians, last_gaussians, visible)
         current_bitlimit = bandwidth_iter.__next__() * 2**20 / args.fps  # 读取带宽数据
         trace["bitlimit"] = current_bitlimit
