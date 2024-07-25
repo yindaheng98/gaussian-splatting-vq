@@ -363,7 +363,9 @@
                 "--bandwidth-end",
                 "3500",
                 "--prediction-conf",
-                "{\"path\":\"saved_data/test.txt\"}"
+                "{\"path\":\"saved_data/test.txt\"}",
+                "--restore-save",
+                "RT4KSR/code/checkpoints/coffee_martini-kmeans-merge-warped/nerfsrresnet_x1_rep_model.pth"
             ]
         },
         {

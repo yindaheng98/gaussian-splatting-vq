@@ -18,6 +18,7 @@ from predictions.Linear import LinearPredictionFoV
 from utils.camera_utils import matrix_to_quaternion
 import pandas as pd
 from itertools import cycle
+from restore import get_restoration, metrics
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cameras", type=str, required=True, help="Path to the camera pose.")
@@ -42,6 +43,7 @@ parser.add_argument("--prediction-conf", type=str, required=True)
 parser.add_argument("--fov-save", type=str, default="output/run/fov.txt")
 parser.add_argument("--trace-save", type=str, default="output/run/trace.json")
 parser.add_argument("--image-save", type=str, default="output/run")
+parser.add_argument("--restore-save", type=str, required=True)
 
 
 class Camera(NamedTuple):
@@ -500,6 +502,7 @@ if __name__ == "__main__":
     client_gaussians = KMeansGaussianModel(args.sh_degree)
     client_gaussians_vqloader = KMeansGaussianModel(args.sh_degree)
     last_gaussians = KMeansGaussianModel(args.sh_degree)
+    restoration = get_restoration(args.restore_save, args)
     current_lods = None
     traces = []
     for i in range(len(pose_dataset) - args.cameras_start):
@@ -617,9 +620,11 @@ if __name__ == "__main__":
             # save2video(distorted_image, warpedref_image)  # debug
             # save2images(distorted_image, warpedref_image, warpedenlargtref_image, n_frame, n_render)  # debug
             save4training(distorted_image, warpedref_image, warpedenlargedref_image, groundtruth_image, n_frame, n_render, folder=args.image_save)
+            restored_image = restoration.restore(distorted_image, warpedref_image)  # 色彩恢复, 用训好的merge模型直接出
+            enlargerestored_image = restoration.restore(distorted_image, warpedenlargedref_image)  # 色彩恢复, 用训好的merge模型直接出
+            render_trace["restored_quality"] = metrics(restored_image, groundtruth_image)  # 测质量
+            render_trace["enlargerestored_quality"] = metrics(enlargerestored_image, groundtruth_image)  # 测质量
             trace["rendering"].append(render_trace)
-            # TODO: 色彩恢复
-            # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
         print("fovy", args.fovy, "->", math.atan(h_enlarge*math.tan(args.fovy)))
         trace["enlarge groundtruth"] = dict(
