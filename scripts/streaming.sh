@@ -31,13 +31,15 @@ run() {
         $7
 }
 # run coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 5 gen_fov
-gen_var_fov() {
+run_var() {
     rm output/run-$1/fov-camera$2-VAR.txt
     run $1 $2 VAR '{"path":"saved_data/test.txt"}' $3 gen_fov
+    run $1 $2 VAR '{"path":"saved_data/test.txt"}' $3 run_fov
 }
-# gen_var_fov coffee_martini 0 5
-gen_lstm_fov() {
+# run_var coffee_martini 0 5
+run_lstm() {
     rm output/run-$1/fov-camera$2-LSTM.txt
     run $1 $2 LSTM "{\"path\":\"saved_data/test.txt\"}" $3 gen_fov "--prediction-load output/run-$1/prediction-camera$2.pth"
+    run $1 $2 LSTM '{"path":"saved_data/test.txt"}' $3 run_fov
 }
-gen_lstm_fov coffee_martini 0 5
+# run_lstm coffee_martini 0 5
