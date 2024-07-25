@@ -6,15 +6,21 @@ import torch
 
 
 class LinearPredictionFoV(PredictionFoV):
-    def __init__(self) -> None:
+    def __init__(self, path) -> None:
         super().__init__()
-        data = np.genfromtxt("fov.txt", delimiter=",")
-        y, X = data[..., :2], quaternion_to_axis_angle(torch.tensor(data[..., 2:])).cpu().numpy()
-        model = LinearRegression()
-        model.fit(X, y)
-        self.model = model
+        self.model = None
+        try:
+            data = np.genfromtxt(path, delimiter=",")
+            y, X = data[..., :2], quaternion_to_axis_angle(torch.tensor(data[..., 2:])).cpu().numpy()
+            model = LinearRegression()
+            model.fit(X, y)
+            self.model = model
+        except Exception as e:
+            print("no exists, no predict", path)
 
     def predict(self, speed):
+        if not self.model:
+            return np.asarray((1., 1.))
         return self.model.predict(quaternion_to_axis_angle(speed.unsqueeze(0)).cpu().numpy())[0, ...]
 
 

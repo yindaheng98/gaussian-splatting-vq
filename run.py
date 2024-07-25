@@ -39,8 +39,8 @@ parser.add_argument("--bandwidth-start", type=int, default=0)
 parser.add_argument("--bandwidth-end", type=int, default=None)
 parser.add_argument("--prediction", type=str, default="VAR")
 parser.add_argument("--prediction-conf", type=str, required=True)
-parser.add_argument("--fov-save", type=str, default="fov.txt")
-parser.add_argument("--trace-save", type=str, default="trace.json")
+parser.add_argument("--fov-save", type=str, default="output/run/fov.txt")
+parser.add_argument("--trace-save", type=str, default="output/run/trace.json")
 parser.add_argument("--image-save", type=str, default="output/run")
 
 
@@ -492,7 +492,7 @@ if __name__ == "__main__":
     bandwidth = pd.read_csv(args.bandwidth)["throughput_mbps"][args.bandwidth_start:(args.bandwidth_end or args.bandwidth_start+args.max_frame)]
     bandwidth_iter = cycle(bandwidth)
     prediction = prediction_dict[args.prediction](**json.loads(args.prediction_conf))
-    prediction_fov = LinearPredictionFoV()
+    prediction_fov = LinearPredictionFoV(path=args.fov_save)
     pose_dataset = CameraPoseDataset(args.cameras, history_size=args.history_size, prediction_stride=args.prediction_stride, prediction_length=args.prediction_length)
     frame_stride = 1/args.fps
     last_frame = None
@@ -621,7 +621,7 @@ if __name__ == "__main__":
             # TODO: 色彩恢复
             # TODO: 测质量
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
-        print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
+        print("fovy", args.fovy, "->", math.atan(h_enlarge*math.tan(args.fovy)))
         trace["enlarge groundtruth"] = dict(
             fovx=math.atan(w_enlarge*math.tan(args.fovx/2))*2,
             fovy=math.atan(h_enlarge*math.tan(args.fovy/2))*2,
