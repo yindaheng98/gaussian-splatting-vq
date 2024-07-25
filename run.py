@@ -40,7 +40,8 @@ parser.add_argument("--bandwidth-end", type=int, default=None)
 parser.add_argument("--prediction", type=str, default="VAR")
 parser.add_argument("--prediction-conf", type=str, required=True)
 parser.add_argument("--fov-save", type=str, default="fov.txt")
-parser.add_argument("--trace-save", type=str, default="trace.txt")
+parser.add_argument("--trace-save", type=str, default="trace.json")
+parser.add_argument("--image-save", type=str, default="output/run")
 
 
 class Camera(NamedTuple):
@@ -192,6 +193,25 @@ def save2images(distorted_image, warpedref_image, groundtruth_image, n_frame, n_
     frame = torch.concat((distorted_image, warpedref_image, groundtruth_image), dim=1).permute(1, 2, 0)
     frame_uint8 = (frame[..., [2, 1, 0]].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
     cv2.imwrite(os.path.join(folder, f"frame{n_frame}_{n_render}.png"), frame_uint8)
+
+
+def save4training(distorted_image, warpedref_image, enlargref_image, groundtruth_image, n_frame, n_render, folder="output/run"):
+    distorted_folder = os.path.join(folder, "distorted")
+    warpedref_folder = os.path.join(folder, "warped")
+    enlargref_folder = os.path.join(folder, "warpedenlarged")
+    groundtruth_folder = os.path.join(folder, "groundtruth")
+    os.makedirs(distorted_folder, exist_ok=True)
+    os.makedirs(warpedref_folder, exist_ok=True)
+    os.makedirs(enlargref_folder, exist_ok=True)
+    os.makedirs(groundtruth_folder, exist_ok=True)
+    name = f"frame{n_frame}_{n_render}.png"
+    import cv2
+    frame = torch.stack((distorted_image, warpedref_image, enlargref_image, groundtruth_image), dim=-1).permute(1, 2, 0, 3)
+    frame_uint8 = (frame[..., [2, 1, 0], :].clamp(0, 1) * 255).type(torch.uint8).cpu().numpy()
+    cv2.imwrite(os.path.join(distorted_folder, name), frame_uint8[..., 0])
+    cv2.imwrite(os.path.join(warpedref_folder, name), frame_uint8[..., 1])
+    cv2.imwrite(os.path.join(enlargref_folder, name), frame_uint8[..., 2])
+    cv2.imwrite(os.path.join(groundtruth_folder, name), frame_uint8[..., 3])
 
 
 def mark_visible(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):
@@ -521,8 +541,8 @@ if __name__ == "__main__":
         trace["enlarge prediction"] = dict(
             fovx=math.atan(w_enlarge_pred*math.tan(args.fovx/2))*2,
             fovy=math.atan(h_enlarge_pred*math.tan(args.fovy/2))*2,
-            w=w_enlarge_pred,
-            h=w_enlarge_pred
+            w=w_enlarge_pred.item(),
+            h=w_enlarge_pred.item()
         )
 
         # 服务端渲染
@@ -585,17 +605,18 @@ if __name__ == "__main__":
             render_trace["enlarge groundtruth"] = dict(
                 fovx=math.atan(w_enlarge_*math.tan(args.fovx/2))*2,
                 fovy=math.atan(h_enlarge_*math.tan(args.fovy/2))*2,
-                w=w_enlarge_,
-                h=h_enlarge_
+                w=w_enlarge_.item(),
+                h=h_enlarge_.item()
             )
             enlargeref_image, _ = render_frame(enlarge_camera, server_gaussians, pipeline)
-            warpedenlargref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
+            warpedenlargtref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
             print("Missing pixels after groundtruth enlarge", is_edge.sum().item())
 
             groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
-            save2images(distorted_image, warpedref_image, warpedenlargref_image, n_frame, n_render)  # debug
+            # save2images(distorted_image, warpedref_image, warpedenlargtref_image, n_frame, n_render)  # debug
+            save4training(distorted_image, warpedref_image, warpedenlargedref_image, groundtruth_image, n_frame, n_render, folder=args.image_save)
             trace["rendering"].append(render_trace)
             # TODO: 色彩恢复
             # TODO: 测质量
@@ -603,7 +624,9 @@ if __name__ == "__main__":
         print("fovy", args.fovx, "->", math.atan(h_enlarge*math.tan(args.fovy)))
         trace["enlarge groundtruth"] = dict(
             fovx=math.atan(w_enlarge*math.tan(args.fovx/2))*2,
-            fovy=math.atan(h_enlarge*math.tan(args.fovy/2))*2
+            fovy=math.atan(h_enlarge*math.tan(args.fovy/2))*2,
+            w=w_enlarge.item(),
+            h=h_enlarge.item()
         )
         print("speed", speed, "enlarge", w_enlarge.item(), h_enlarge.item(), "Missing", total_missing_pixels)
         trace["missing pixels"] = total_missing_pixels
