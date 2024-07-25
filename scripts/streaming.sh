@@ -27,6 +27,17 @@ run() {
         --restore-save RT4KSR/code/checkpoints/$1-kmeans-merge-warped/nerfsrresnet_x1_rep_model.pth \
         --trace-save output/run-$1/trace-camera$2-$3-$6.json \
         --image-save output/run-$1/image-camera$2-$3-$6 \
-        --max-frame $5
+        --max-frame $5 \
+        $7
 }
-run coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 5 gen_fov
+# run coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 5 gen_fov
+gen_var_fov() {
+    rm output/run-$1/fov-camera$2-VAR.txt
+    run $1 $2 VAR '{"path":"saved_data/test.txt"}' $3 gen_fov
+}
+# gen_var_fov coffee_martini 0 5
+gen_lstm_fov() {
+    rm output/run-$1/fov-camera$2-LSTM.txt
+    run $1 $2 LSTM "{\"path\":\"saved_data/test.txt\"}" $3 gen_fov "--prediction-load output/run-$1/prediction-camera$2.pth"
+}
+gen_lstm_fov coffee_martini 0 5

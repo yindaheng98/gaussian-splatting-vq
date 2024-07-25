@@ -54,7 +54,7 @@ class LSTMPrediction(Prediction):
             weight_init.trunc_normal_(param, 0, 1e-8, 0, 0)
         self.var = VARPrediction(path)
 
-    def predict(self, pose_history, prediction_stride, prediction_length):
+    def predict_(self, pose_history, prediction_stride, prediction_length):
         var_pred = self.var.predict(pose_history, prediction_stride, prediction_length)
         R = pose_history['R']
         T = pose_history['T']
@@ -66,6 +66,10 @@ class LSTMPrediction(Prediction):
         Q[..., 0] += 1.
         R = quaternion_to_matrix(Q)
         return {'R': R @ var_pred['R'], 'T': T * 10 + var_pred['T']}
+
+    def predict(self, pose_history, prediction_stride, prediction_length):
+        with torch.no_grad():
+            return self.predict_(pose_history, prediction_stride, prediction_length)
 
     def save(self, path):
         torch.save(self.lstm.state_dict(), path)
