@@ -134,7 +134,7 @@ def warp(uv, color_ref, depth):
     # warped[mask_occluded_last, :] = torch.tensor([255, 0, 0], dtype=warped.dtype)  # debug
     # warped[mask_occluded, :] = torch.tensor([0, 255, 0], dtype=warped.dtype)  # debug
     # warped[mask_occlude, :] = torch.tensor([0, 0, 255], dtype=warped.dtype)  # debug
-    warped[is_edge, ...] = 0
+    # warped[is_edge, ...] = 0
     return warped, is_edge
 
 
