@@ -13,9 +13,8 @@ test_prediction() {
         --save output/run-$1/prediction-camera$2.pth
 }
 # test_prediction coffee_martini 0
-gen_fov() {
+run() {
     mkdir -p output/run-$1
-    rm output/run-$1/fov-camera$2.txt
     python run.py \
         --video output/$1 \
         --sh-degree 2 \
@@ -26,7 +25,8 @@ gen_fov() {
         --prediction-conf "$4" \
         --fov-save output/run-$1/fov-camera$2-$3.txt \
         --restore-save RT4KSR/code/checkpoints/$1-kmeans-merge-warped/nerfsrresnet_x1_rep_model.pth \
-        --trace-save output/run-$1/trace-nopred-camera$2.json \
+        --trace-save output/run-$1/trace-camera$2-$3-$6.json \
+        --image-save output/run-$1/image-camera$2-$3-$6 \
         --max-frame $5
 }
-gen_fov coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 15
+run coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 5 gen_fov
