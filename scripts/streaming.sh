@@ -59,7 +59,7 @@ run_all() {
     test_prediction $1 $2
     for i in {0..10}; do
         run_both $1 $2 $(($i * 100)) 100 &
-        if [ $(($i % 2)) == 1 ]; then
+        if [ $(($i % 3)) == 2 ]; then
             wait
         fi
     done
