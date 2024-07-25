@@ -65,8 +65,9 @@ def camera2view(camera: Camera):
 
 
 def predict_camera(prediction: Prediction, pose_history, prediction_stride, prediction_length, fovx: float, fovy: float, width: int, height: int):
-    pose_pred = prediction.predict(pose_history, prediction_stride, prediction_length)
-    return pose_pred
+    with torch.no_grad():
+        pose_pred = prediction.predict(pose_history, prediction_stride, prediction_length)
+        return pose_pred
 
 
 def render_frame(camera: Camera, gaussians: GaussianModel, pipeline: PipelineParams):

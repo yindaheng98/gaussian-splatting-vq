@@ -1,20 +1,20 @@
 #!/bin/sh
 train_prediction() {
-    mkdir -p output/run-$1
+    mkdir -p output/run-$1/camera$2
     python prediction_train.py \
         --cameras saved_data/$1-camera$2.txt \
-        --save output/run-$1/prediction-camera$2.pth
+        --save output/run-$1/camera$2/prediction.pth
 }
 # train_prediction coffee_martini 0
 test_prediction() {
-    mkdir -p output/run-$1
+    mkdir -p output/run-$1/camera$2
     python prediction_test.py \
         --cameras saved_data/$1-camera$2.txt \
-        --save output/run-$1/prediction-camera$2.pth
+        --save output/run-$1/camera$2/prediction.pth
 }
 # test_prediction coffee_martini 0
 run() {
-    mkdir -p output/run-$1
+    mkdir -p output/run-$1/camera$2
     python run.py \
         --video output/$1 \
         --sh-degree 2 \
@@ -23,23 +23,23 @@ run() {
         --cameras saved_data/$1-camera$2.txt \
         --prediction $3 \
         --prediction-conf "$4" \
-        --fov-save output/run-$1/fov-camera$2-$3.txt \
+        --fov-save output/run-$1/camera$2/fov-$3.txt \
         --restore-save RT4KSR/code/checkpoints/$1-kmeans-merge-warped/nerfsrresnet_x1_rep_model.pth \
-        --trace-save output/run-$1/trace-camera$2-$3-$6.json \
-        --image-save output/run-$1/image-camera$2-$3-$6 \
+        --trace-save output/run-$1/camera$2/trace-$3-$6.json \
+        --image-save output/run-$1/camera$2/image-$3-$6 \
         --max-frame $5 \
         $7
 }
-# run coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 5 gen_fov
+# run coffee_martini 0 VAR '{"path":"saved_data/test.txt"}' 3 gen_fov
 run_var() {
-    rm output/run-$1/fov-camera$2-VAR.txt
+    rm output/run-$1/camera$2/fov-VAR.txt
     run $1 $2 VAR '{"path":"saved_data/test.txt"}' $3 gen_fov
     run $1 $2 VAR '{"path":"saved_data/test.txt"}' $3 run_fov
 }
-# run_var coffee_martini 0 5
+# run_var coffee_martini 0 3
 run_lstm() {
-    rm output/run-$1/fov-camera$2-LSTM.txt
-    run $1 $2 LSTM "{\"path\":\"saved_data/test.txt\"}" $3 gen_fov "--prediction-load output/run-$1/prediction-camera$2.pth"
+    rm output/run-$1/camera$2/fov-LSTM.txt
+    run $1 $2 LSTM '{"path":"saved_data/test.txt"}' $3 gen_fov "--prediction-load output/run-$1/camera$2/prediction.pth"
     run $1 $2 LSTM '{"path":"saved_data/test.txt"}' $3 run_fov
 }
-# run_lstm coffee_martini 0 5
+# run_lstm coffee_martini 0 3
