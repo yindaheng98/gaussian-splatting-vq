@@ -651,7 +651,7 @@ if __name__ == "__main__":
         with open(args.fov_save, "a", encoding="utf8") as f:
             f.write(f"{w_enlarge}, {h_enlarge}, " + ', '.join([str(i) for i in speed.cpu().numpy().tolist()]) + '\n')
         traces.append(trace)
-    with open(args.trace_save, "w", encoding='utf8') as f:
-        json.dump(traces, f, indent=2)
+        with open(args.trace_save, "w", encoding='utf8') as f:
+            json.dump(traces, f, indent=2)
     if videoout is not None:
         videoout.release()
