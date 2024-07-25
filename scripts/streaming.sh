@@ -44,3 +44,9 @@ run_lstm() {
     run $1 $2 $3 LSTM $4 run_fov "--use-enlarged-in-mark-visible"
 }
 # run_lstm coffee_martini 0 10 3
+run_both() {
+    run_var $1 $2 $3 $4 &
+    run_lstm $1 $2 $3 $4 &
+    wait
+}
+run_both coffee_martini 0 10 3
