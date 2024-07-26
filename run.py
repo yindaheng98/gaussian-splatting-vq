@@ -589,9 +589,10 @@ if __name__ == "__main__":
                     T=pose_groundtruth["T"][j, ...]),
                 fovx=args.fovx, fovy=args.fovy, width=args.width, height=args.height)
             distorted_image, depth = render_frame(groundtruth_camera, client_gaussians, pipeline)
+            groundtruth_image, groundtruth_depth = render_frame(groundtruth_camera, server_gaussians, pipeline)
             warpedref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
             warpedenlargedref_image, is_edge_enlarged = warping_frame(groundtruth_camera, depth[0, ...], prediction_camera_enlarged, reference_image_enlarged)
-            is_edge, w_enlarge_, h_enlarge_ = compute_enlarge(groundtruth_camera, depth[0, ...], prediction_camera, reference_image)
+            is_edge, w_enlarge_, h_enlarge_ = compute_enlarge(groundtruth_camera, groundtruth_depth[0, ...], prediction_camera, reference_image)
             w_enlarge = max(w_enlarge, w_enlarge_)
             h_enlarge = max(h_enlarge, h_enlarge_)
             print("Missing pixels", is_edge.sum().item())
@@ -618,14 +619,15 @@ if __name__ == "__main__":
             warpedenlargtref_image, is_edge = warping_frame(groundtruth_camera, depth[0, ...], enlarge_camera, enlargeref_image)
             print("Missing pixels after groundtruth enlarge", is_edge.sum().item())
 
-            groundtruth_image, _ = render_frame(groundtruth_camera, server_gaussians, pipeline)
             # show3images(distorted_image, reference_image, warpedref_image)  # debug
             # save2video(distorted_image, warpedref_image)  # debug
             # save2images(distorted_image, warpedref_image, warpedenlargtref_image, n_frame, n_render)  # debug
             restored_image = restoration.restore(distorted_image, warpedref_image)  # 色彩恢复, 用训好的merge模型直接出
             enlargerestored_image = restoration.restore(distorted_image, warpedenlargedref_image)  # 色彩恢复, 用训好的merge模型直接出
+            enlargtrestored_image = restoration.restore(distorted_image, warpedenlargtref_image)  # 色彩恢复, 用训好的merge模型直接出
             render_trace["restored_quality"] = metrics(restored_image, groundtruth_image)  # 测质量
             render_trace["enlargerestored_quality"] = metrics(enlargerestored_image, groundtruth_image)  # 测质量
+            render_trace["enlargerestored_groundtruth_quality"] = metrics(enlargtrestored_image, groundtruth_image)  # 测质量
             save4training(
                 n_frame, n_render, folder=args.image_save,
                 distorted=distorted_image,
@@ -634,6 +636,7 @@ if __name__ == "__main__":
                 groundtruth=groundtruth_image,
                 restored=restored_image,
                 enlargerestored=enlargerestored_image,
+                enlargerestored_groundtruth=enlargtrestored_image,
             )
             trace["rendering"].append(render_trace)
         print("fovx", args.fovx, "->", math.atan(w_enlarge*math.tan(args.fovx)))
