@@ -299,7 +299,7 @@ def compute_next_lod(bitlimit: int, visible: torch.Tensor, should_reload: torch.
     avg_lod = current_lods[visible].float().mean()  # 所有可见gaussian的平均lod
     def compute_reload_size(n, lod, lod_bitsize): return sum(lod_bitsize[:lod+1])*n  # 用于计算gaussians重载到指定lod需要多少带宽
     reload_lod = 0
-    while compute_reload_size(should_reload.sum(), reload_lod, lod_bitsize) < bitlimit and reload_lod < min(avg_lod, len(lod_bitsize)):
+    while compute_reload_size(should_reload.sum(), reload_lod+1, lod_bitsize) < bitlimit and reload_lod+1 < min(avg_lod, len(lod_bitsize)):
         reload_lod += 1  # 加重载lod加到满或者超过了平均lod
     print("should reload", should_reload.sum().item(), "avglod", avg_lod.item(), "reload lod", reload_lod)
     trace["should reload"] = should_reload.sum().item()
