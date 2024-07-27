@@ -61,8 +61,8 @@ run_both() {
 run_all() {
     train_prediction $1 $2
     test_prediction $1 $2
-    for i in {0..$4}; do
-        run_both $1 $2 $(($i * $3)) $3
+    for i in $(seq 0 $4); do
+        echo run_both $1 $2 $(($i * $3)) $3
         # run_both $1 $2 $(($i * 100)) 100 &
         # if [ $(($i % 3)) == 2 ]; then
         #     wait
