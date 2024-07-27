@@ -61,12 +61,25 @@ run_both() {
 run_all() {
     train_prediction $1 $2
     test_prediction $1 $2
-    for i in {0..10}; do
-        run_both $1 $2 $(($i * 100)) 100
+    for i in {0..$4}; do
+        run_both $1 $2 $(($i * $3)) $3
         # run_both $1 $2 $(($i * 100)) 100 &
         # if [ $(($i % 3)) == 2 ]; then
         #     wait
         # fi
     done
 }
-run_all coffee_martini 0
+run_all coffee_martini 0 200 10
+run_all cook_spinach 0 200 10
+run_all cut_roasted_beef 0 200 10
+run_all flame_salmon_1 0 200 10
+run_all flame_steak 0 200 10
+run_all sear_steak 0 100 10
+
+run_all discussion 0 100 10
+run_all stepin 0 100 10
+run_all trimming 0 100 10
+run_all vrheadset 0 100 10
+
+run_all taekwondo 0 101 10
+run_all walking 0 75 10
