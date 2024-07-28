@@ -22,7 +22,7 @@ run() {
         --video output/$1 \
         --sh-degree 2 \
         --codebooks output/vq-$1/frame1/point_cloud/iteration_30000 \
-        --bandwidth-start 3457 --bandwidth-end 3500 \
+        --bandwidth-start 2901 --bandwidth-end 2978 \
         --cameras saved_data/$1-camera$2.txt \
         --cameras-start $3 \
         --prediction $4 \
