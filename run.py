@@ -485,6 +485,7 @@ n_lod = 32
 lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
 lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, n_lod)]
 bitlimit = 5*2**20  # 5x30Mbps & 30FPS
+bitlimit_scale = 2.5  # 压缩比大概2.5倍
 
 if __name__ == "__main__":
     torch.device("cuda").__enter__()
@@ -565,7 +566,8 @@ if __name__ == "__main__":
         if args.use_enlarged_in_mark_visible:
             visible = mark_visible(prediction_camera_enlarged, client_gaussians, pipeline)
         should_reload = mark_visible_different(client_gaussians, last_gaussians, visible)
-        current_bitlimit = bandwidth_iter.__next__() * 2**20 / args.fps  # 读取带宽数据
+        current_bitlimit = bitlimit_scale * bandwidth_iter.__next__() * 2**20 / args.fps  # 读取带宽数据
+        trace["bitlimit scale"] = bitlimit_scale
         trace["bitlimit"] = current_bitlimit
         current_lods, bitlimit_rest, should_reload = compute_next_lod(current_bitlimit, visible, should_reload, current_lods, lod_bitsize, client_gaussians, trace)  # 决策量化级别, 预测视角内塞满带宽
         update_visible_different_to_last(client_gaussians, last_gaussians, should_reload)
