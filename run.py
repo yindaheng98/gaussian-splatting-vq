@@ -484,6 +484,7 @@ def rotate_speed(Rs: torch.Tensor):
 n_lod = 32
 lod_bitsize = [sum(attr[0] for attr in lod_log2_clusters.values())]
 lod_bitsize += [sum(attr[i] - attr[i-1] for attr in lod_log2_clusters.values()) for i in range(1, n_lod)]
+# lod_bitsize += [sum(attr[i] for attr in lod_log2_clusters.values()) for i in range(1, n_lod)] # without SVQ
 bitlimit = 5*2**20  # 5x30Mbps & 30FPS
 bitlimit_scale = 2.5  # 压缩比大概2.5倍
 
