@@ -1,4 +1,5 @@
 import open3d as o3d
 print("Load a ply point cloud and render it")
 pcd = o3d.io.read_point_cloud("data/coffee_martini/frame1/filtered-poisson.ply")
+pcd.normals = o3d.utility.Vector3dVector()
 o3d.visualization.draw_geometries([pcd])
