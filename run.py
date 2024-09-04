@@ -536,6 +536,7 @@ if __name__ == "__main__":
                 T=pose_prediction["T"][-1, ...]),
             fovx=args.fovx, fovy=args.fovy, width=args.width//4, height=args.height//4)
         speed = rotate_speed(pose_prediction["R"])
+        trace["speed"] = speed.tolist()
         w_enlarge_pred, h_enlarge_pred = prediction_fov.predict(speed)
         prediction_camera_enlarged = Camera(
             pose=Pose(
